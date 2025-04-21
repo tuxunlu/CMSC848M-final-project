@@ -1,5 +1,5 @@
-mkdir data
-cd data
+mkdir dataset
+cd dataset
 mkdir coco
 cd coco
 mkdir images

@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from model import ModelInterface
+from model import ModelInterfaceBaseline, ModelInterfaceVQVAE
 from data import DataInterface
 
 
@@ -117,7 +117,12 @@ def main(config):
 
     # Instantiate model and data module
     data_module = DataInterface(**config)
-    model_module = ModelInterface(**config)         
+    if not (config['train_vqvae'] ^ config['train_baseline']):
+        raise ValueError("train_vqvae and train_baseline cannot be True or False at the same time! Set only one variable to True to start a single training process")
+    if config['train_vqvae']:
+        model_module = ModelInterfaceVQVAE(**config) 
+    else:
+        model_module = ModelInterfaceBaseline(**config)  
 
     checkpoint_directory, checkpoint_file_path = get_checkpoint_path(config=config) if config['enable_checkpointing'] else (None, None)
 
@@ -155,6 +160,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--config_path', default=os.path.join(os.getcwd(), 'config', 'config.yaml'), type=str, required=False,
                         help='Path of config file')
+    parser.add_argument('--train_vqvae', default=False, type=bool, required=True, help='Indicate the training process for VQVAE')
+    parser.add_argument('--train_baseline', default=False, type=bool, required=True, help='Indicate the training process for Baseline model')
     parser.add_argument('--resume_from_last_checkpoint', default=None, type=bool, required=False, 
                     help='Automatically find the log folder with latest timestamp and latest version, and load `latest-...`.ckpt model')
     parser.add_argument('--resume_from_manual_checkpoint', default=None, type=str, required=False,

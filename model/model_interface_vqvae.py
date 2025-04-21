@@ -4,10 +4,10 @@ import importlib
 import torch.optim.lr_scheduler as lrs
 import pytorch_lightning as pl
 from typing import Callable, Dict, Tuple
-from .loss.translation_loss import translation_loss
+from loss.vqvae import reconstruction_loss
 
 
-class ModelInterface(pl.LightningModule):
+class ModelInterfaceVQVAE(pl.LightningModule):
     def __init__(self, **kwargs):
         super().__init__()
         self.save_hyperparameters()
@@ -20,36 +20,33 @@ class ModelInterface(pl.LightningModule):
     # Caution: self.model.train() is invoked
     def training_step(self, batch, batch_idx):
         image, caption = batch
-        image_codebook, translated_image_codebook = self(image, caption)
-        train_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
+        embedding_loss, x_hat, perplexity = self(image)
+        train_loss = embedding_loss + self.loss_function(x_hat, image)
 
         self.log('train_loss', train_loss, on_step=True, on_epoch=False, prog_bar=True)
-        # Replace the following with evaluations like BLEU score
-        # self.log('train_acc', correct_num / len(out_digit), on_step=True, on_epoch=False, prog_bar=True)
+        self.log('train_perplexities', perplexity, on_step=True, on_epoch=False, prog_bar=True)
 
         return train_loss
 
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def validation_step(self, batch, batch_idx):
         image, caption = batch
-        image_codebook, translated_image_codebook = self(image, caption)
-        val_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
+        embedding_loss, x_hat, perplexity = self(image)
+        val_loss = embedding_loss + self.loss_function(x_hat, image)
 
         self.log('val_loss', val_loss, on_step=True, on_epoch=False, prog_bar=True)
-        # Replace the following with evaluations like BLEU score
-        # self.log('train_acc', correct_num / len(out_digit), on_step=True, on_epoch=False, prog_bar=True)
+        self.log('val_perplexities', perplexity, on_step=True, on_epoch=False, prog_bar=True)
 
         return val_loss
 
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def test_step(self, batch, batch_idx):
         image, caption = batch
-        image_codebook, translated_image_codebook = self(image, caption)
-        test_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
+        embedding_loss, x_hat, perplexity = self(image)
+        test_loss = embedding_loss + self.loss_function(x_hat, image)
 
-        self.log('train_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
-        # Replace the following with evaluations like BLEU score
-        # self.log('train_acc', correct_num / len(out_digit), on_step=True, on_epoch=False, prog_bar=True)
+        self.log('test_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log('test_perplexities', perplexity, on_step=True, on_epoch=False, prog_bar=True)
 
         return test_loss
 
@@ -93,7 +90,7 @@ class ModelInterface(pl.LightningModule):
     def __configure_loss(self):
         # User-defined function list. Recommend using `_loss` suffix in loss names.
         user_loss_dict = {
-            "translation_loss": translation_loss
+            "reconstruction_loss": (1.0, reconstruction_loss)
         }
 
         loss_dict = {**user_loss_dict}
