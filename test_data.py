@@ -10,7 +10,7 @@ import torchvision.transforms as T
 import torch
 from torchvision.utils import save_image
 
-from data import DataInterface
+from datasets import DataInterface
 
 
 def main():
