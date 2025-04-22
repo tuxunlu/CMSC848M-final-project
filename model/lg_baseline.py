@@ -12,8 +12,20 @@ class LGBaseline(nn.Module):
             **kwargs
         ):
         super(self, LGBaseline).__init__()
-        self.vqvae = VQVAE(**kwargs)
+        if 'pretrained_vqvae_path' not in kwargs:
+            raise KeyError("Key pretrained_vqvae_path is not found in kwargs!")
+        self.vqvae = self.load_vqvae_model(kwargs)
         self.transformer = Transformer(**kwargs)
+
+        # Freeze parameters of VQVAE for inference only
+        for param in self.vqvae.parameters():
+            param.requires_grad = False
+
+    def load_vqvae_model(self, kwargs):
+        model = VQVAE(**kwargs)
+        path = kwargs['pretrained_vqvae_path']
+        model.load_state_dict(path)
+        return model
     
     def forward(self, image, caption):
         image_codebook = self.vqvae.encoder_forward(image)

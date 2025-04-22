@@ -20,10 +20,10 @@ def load_callbacks(config):
     callbacks = []
     # Monitor a metric and stop training when it stops improving
     callbacks.append(plc.EarlyStopping(
-        monitor='val_acc',
-        mode='max',
-        patience=10,
-        min_delta=0.001
+        monitor='train_loss',
+        mode='min',
+        patience=5,
+        min_delta=1e-5
     ))
 
     # Save the model periodically by monitoring a quantity
@@ -31,18 +31,11 @@ def load_callbacks(config):
         # Best checkpoint
         callbacks.append(plc.ModelCheckpoint(
             every_n_epochs=1,
-            monitor='val_acc',
-            mode='max',
-            filename='best-{epoch:03d}-{val_acc:.5f}',
+            monitor='train_loss',
+            mode='min',
+            filename='best-{epoch:03d}-{train_loss:.6f}',
             save_top_k=1,
-            save_last=False,
-        ))
-
-        # Epoch checkpoint. Store the model of latest epoch
-        callbacks.append(plc.ModelCheckpoint(
-            every_n_epochs=1,
-            filename='latest-{epoch:03d}-{val_acc:.5f}',
-            monitor=None,
+            save_last=True,
         ))
 
     # Monitor learning rate decay

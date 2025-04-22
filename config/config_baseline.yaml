@@ -30,9 +30,10 @@ model_class_name: lg_baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
+pretrained_vqvae_path: lightning_logs/
 h_dim: 128
-res_h_dim: 32
-n_res_layers: 3
+res_h_dim: 128
+n_res_layers: 4
 n_embeddings: 1024
 embedding_dim: 128
 beta: 0.25
