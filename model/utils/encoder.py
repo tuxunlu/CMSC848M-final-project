@@ -29,6 +29,12 @@ class Encoder(nn.Module):
             nn.Conv2d(in_dim, h_dim // 2, kernel_size=kernel,
                       stride=stride, padding=1),
             nn.ReLU(),
+            nn.Conv2d(h_dim // 2, h_dim // 2, kernel_size=kernel-1, 
+                      stride=stride, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(h_dim // 2, h_dim // 2, kernel_size=kernel-1, 
+                      stride=stride, padding=1),
+            nn.ReLU(),
             nn.Conv2d(h_dim // 2, h_dim, kernel_size=kernel,
                       stride=stride, padding=1),
             nn.ReLU(),
@@ -45,10 +51,10 @@ class Encoder(nn.Module):
 
 if __name__ == "__main__":
     # random data
-    x = np.random.random_sample((3, 40, 40, 200))
+    x = np.random.random_sample((3, 3, 640, 480))
     x = torch.tensor(x).float()
 
     # test encoder
-    encoder = Encoder(40, 128, 3, 64)
+    encoder = Encoder(3, 128, 3, 128)
     encoder_out = encoder(x)
     print('Encoder out shape:', encoder_out.shape)
