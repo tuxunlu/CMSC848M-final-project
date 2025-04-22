@@ -4,7 +4,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import time
 import os
-from datasets.block import BlockDataset, LatentBlockDataset
+from data.block import BlockDataset, LatentBlockDataset
 import numpy as np
 
 

@@ -1,0 +1,2 @@
+from .model_interface_baseline import ModelInterfaceBaseline
+from .model_interface_vqvae import ModelInterfaceVQVAE

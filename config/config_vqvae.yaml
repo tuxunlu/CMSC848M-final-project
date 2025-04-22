@@ -1,0 +1,46 @@
+################# Training Control #################
+deterministic: False
+use_compile: True
+seed: 1234
+lr: 1e-3
+max_epochs: 100
+lr_scheduler: step
+lr_decay_epochs: 5
+lr_decay_rate: 0.5
+lr_decay_min_lr: 1e-6
+
+################# Distributed Training Control #################
+devices: 4
+num_nodes: 1
+strategy: auto
+
+################# Dataset Setting #################
+dataset_class_name: coco
+dataset_dir: dataset
+split_ratios: [0.8, 0.1, 0.1]
+batch_size: 64
+num_workers: 8
+persistent_workers: True
+img_dir: dataset/coco/images
+ann_dir: dataset/coco/annotations
+
+################# Model Architecture, Optimizers and Loss Functions #################
+# Basic setting
+model_class_name: vqvae
+weight_decay: 1e-6
+
+# VQVAE model setting
+h_dim: 256
+res_h_dim: 256
+n_res_layers: 8
+n_embeddings: 1024
+embedding_dim: 128
+beta: 0.25
+save_img_embedding_map: False
+
+################# Tensorboard Logger Setting #################
+log_dir: 'lightning_logs'
+experiment_name: 'main'
+
+################# Checkpoint & Restart Control #################
+enable_checkpointing: True
