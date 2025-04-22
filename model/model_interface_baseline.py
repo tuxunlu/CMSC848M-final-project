@@ -14,8 +14,8 @@ class ModelInterfaceBaseline(pl.LightningModule):
         self.model = self.__load_model()
         self.loss_function = self.__configure_loss()
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, image, caption):
+        return self.model(image, caption)
 
     # Caution: self.model.train() is invoked
     def training_step(self, batch, batch_idx):
