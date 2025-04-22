@@ -48,14 +48,15 @@ def main():
         print("Failed to get batch from train_dataloader:", e)
         return
     print("Train batch type:", type(batch))
-    # Expect a tuple: (images, captions) or similar
-    if isinstance(batch, (list, tuple)) and len(batch) >= 2:
-        images, captions = batch[0], batch[1]
+    # Expect a tuple: (images, token_ids, masks) or similar
+    if isinstance(batch, (list, tuple)) and len(batch) >= 3:
+        images, token_ids, masks = batch[0], batch[1], batch[2]
         print(f"  images tensor shape: {getattr(images, 'shape', 'N/A')}")
-        print(f"  number of captions: {len(captions)}")
-        print("  sample captions:")
-        for i, cap in enumerate(captions[:3]):
-            print(f"    {i + 1}. {cap}")
+        print(f"  token_ids tensor shape: {getattr(token_ids, 'shape', 'N/A')}")
+        print(f"  masks tensor shape: {getattr(masks, 'shape', 'N/A')}")
+        print("  sample token_ids:")
+        for i, id in enumerate(token_ids[:3]):
+            print(f"    {i + 1}. {id}")
 
         # your Normalize(mean,std) values:
         MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3,1,1)

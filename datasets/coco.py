@@ -81,4 +81,4 @@ class Coco(Dataset):
             return_tensors="pt"
         ).to(self.device)
 
-        return image, token_ids['input_ids'].squeeze(0)
+        return image, token_ids['input_ids'].squeeze(0), token_ids['attention_mask'].squeeze(0)
