@@ -2,15 +2,15 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from utils.encoder import Encoder
-from utils.quantizer import VectorQuantizer
-from utils.decoder import Decoder
+from .utils.encoder import Encoder
+from .utils.quantizer import VectorQuantizer
+from .utils.decoder import Decoder
 
 
-class VQVAE(nn.Module):
+class Vqvae(nn.Module):
     def __init__(self, h_dim=128, res_h_dim=32, n_res_layers=2,
                  n_embeddings=512, embedding_dim=64, beta=0.25, save_img_embedding_map=False):
-        super(VQVAE, self).__init__()
+        super(Vqvae, self).__init__()
         self.encoder = Encoder(3, h_dim, n_res_layers, res_h_dim)
         self.pre_quantization_conv = nn.Conv2d(h_dim, embedding_dim, kernel_size=1, stride=1)
         self.vector_quantization = VectorQuantizer(n_embeddings, embedding_dim, beta)

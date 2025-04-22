@@ -118,7 +118,7 @@ def main(config):
     # Instantiate model and data module
     data_module = DataInterface(**config)
     if not (config['train_vqvae'] ^ config['train_baseline']):
-        raise ValueError("train_vqvae and train_baseline cannot be True or False at the same time! Set only one variable to True to start a single training process")
+        raise ValueError(f"train_vqvae: {config['train_vqvae']} and train_baseline: {config['train_baseline']}: cannot be True or False at the same time! Set only one variable to True to start a single training process")
     if config['train_vqvae']:
         model_module = ModelInterfaceVQVAE(**config) 
     else:
@@ -160,8 +160,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--config_path', default=os.path.join(os.getcwd(), 'config', 'config.yaml'), type=str, required=False,
                         help='Path of config file')
-    parser.add_argument('--train_vqvae', default=False, type=bool, required=True, help='Indicate the training process for VQVAE')
-    parser.add_argument('--train_baseline', default=False, type=bool, required=True, help='Indicate the training process for Baseline model')
+    parser.add_argument('--train_vqvae', action='store_true', help='Indicate the training process for VQVAE')
+    parser.add_argument('--train_baseline', action='store_true', help='Indicate the training process for Baseline model')
     parser.add_argument('--resume_from_last_checkpoint', default=None, type=bool, required=False, 
                     help='Automatically find the log folder with latest timestamp and latest version, and load `latest-...`.ckpt model')
     parser.add_argument('--resume_from_manual_checkpoint', default=None, type=str, required=False,
@@ -181,6 +181,8 @@ if __name__ == '__main__':
     # Convert config dict keys to lowercase
     config_dict['resume_from_manual_checkpoint'] = args.resume_from_manual_checkpoint
     config_dict['resume_from_last_checkpoint'] = args.resume_from_last_checkpoint
+    config_dict['train_vqvae'] = args.train_vqvae
+    config_dict['train_baseline'] = args.train_baseline
     config_dict = dict([(k.lower(), v) for k, v in config_dict.items()])
 
     # Activate main function

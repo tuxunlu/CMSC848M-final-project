@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from utils.encoder import Encoder
-from utils.quantizer import VectorQuantizer
-from utils.decoder import Decoder
+from .encoder import Encoder
+from .quantizer import VectorQuantizer
+from .decoder import Decoder
 
 
 class VQVAE(nn.Module):

@@ -4,7 +4,7 @@ import importlib
 import torch.optim.lr_scheduler as lrs
 import pytorch_lightning as pl
 from typing import Callable, Dict, Tuple
-from loss.vqvae import reconstruction_loss
+from .loss.vqvae import reconstruction_loss
 
 
 class ModelInterfaceVQVAE(pl.LightningModule):
@@ -15,15 +15,16 @@ class ModelInterfaceVQVAE(pl.LightningModule):
         self.loss_function = self.__configure_loss()
 
     def forward(self, x):
-        return self.model(x)
+        return self.model.forward(x)
 
     # Caution: self.model.train() is invoked
     def training_step(self, batch, batch_idx):
         image, caption = batch
-        embedding_loss, x_hat, perplexity = self(image)
-        train_loss = embedding_loss + self.loss_function(x_hat, image)
+        embedding_loss, x_hat, perplexity, _ = self(image)
+        train_loss = embedding_loss + self.loss_function(x_hat, image, stage='train')
 
         self.log('train_loss', train_loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log('train_embedding_loss', embedding_loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('train_perplexities', perplexity, on_step=True, on_epoch=False, prog_bar=True)
 
         return train_loss
@@ -31,10 +32,11 @@ class ModelInterfaceVQVAE(pl.LightningModule):
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def validation_step(self, batch, batch_idx):
         image, caption = batch
-        embedding_loss, x_hat, perplexity = self(image)
-        val_loss = embedding_loss + self.loss_function(x_hat, image)
+        embedding_loss, x_hat, perplexity, _ = self(image)
+        val_loss = embedding_loss + self.loss_function(x_hat, image, stage='val')
 
         self.log('val_loss', val_loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log('val_embedding_loss', embedding_loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('val_perplexities', perplexity, on_step=True, on_epoch=False, prog_bar=True)
 
         return val_loss
@@ -42,10 +44,11 @@ class ModelInterfaceVQVAE(pl.LightningModule):
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def test_step(self, batch, batch_idx):
         image, caption = batch
-        embedding_loss, x_hat, perplexity = self(image)
-        test_loss = embedding_loss + self.loss_function(x_hat, image)
+        embedding_loss, x_hat, perplexity, _ = self(image)
+        test_loss = embedding_loss + self.loss_function(x_hat, image, stage='test')
 
         self.log('test_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log('test_embedding_loss', embedding_loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('test_perplexities', perplexity, on_step=True, on_epoch=False, prog_bar=True)
 
         return test_loss

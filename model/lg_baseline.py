@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from utils.vqvae import VQVAE
-from utils.transformer import Transformer
+from .utils.vqvae import VQVAE
+from .utils.transformer import Transformer
 
 
 class LGBaseline(nn.Module):
