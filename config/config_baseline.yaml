@@ -40,8 +40,8 @@ beta: 0.25
 save_img_embedding_map: False
 
 # Transformer model setting
-src_vocab_size: 2000
-tgt_vocab_size: 1200
+src_vocab_size: 49408
+tgt_vocab_size: 1026 # 1024 + <start>/<end> tokens
 d_model: 512
 num_heads: 8
 num_encoder_layers: 2

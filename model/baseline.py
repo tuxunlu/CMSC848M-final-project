@@ -61,8 +61,8 @@ class Baseline(nn.Module):
         model.load_state_dict(torch.load(pretrained_vqvae_path))
         return model
     
-    def forward(self, image, caption):
-        image_codebook = self.vqvae.encoder_forward(image)
-        translated_language_codebook = self.transformer(caption, image_codebook)
+    def forward(self, image, caption, src_mask):
+        image_sentence = self.vqvae.encoder_forward(image)
+        pred_image_sentence = self.transformer(caption, image_sentence, src_mask=src_mask)
 
-        return image_codebook, translated_language_codebook
+        return image_sentence, pred_image_sentence
