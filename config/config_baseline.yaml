@@ -10,7 +10,7 @@ lr_decay_rate: 0.5
 lr_decay_min_lr: 1e-6
 
 ################# Distributed Training Control #################
-devices: 1
+devices: 4
 num_nodes: 1
 strategy: ddp
 
@@ -18,7 +18,7 @@ strategy: ddp
 dataset_class_name: coco
 dataset_dir: dataset
 split_ratios: [0.8, 0.1, 0.1]
-batch_size: 32
+batch_size: 48
 num_workers: 8
 persistent_workers: True
 img_dir: dataset/coco/images
