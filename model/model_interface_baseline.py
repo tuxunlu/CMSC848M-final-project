@@ -82,29 +82,11 @@ class ModelInterfaceBaseline(pl.LightningModule):
             raise ValueError('Invalid lr_scheduler type!')
         return [optimizer], [scheduler]
 
-    def __calculate_loss_and_log(self, inputs, labels, loss_dict: Dict[str, Tuple[float, Callable]], stage: str):
-        raw_loss_list = [func(inputs, labels) for _, func in loss_dict.values()]
-        weighted_loss = [weight * raw_loss for (weight, _), raw_loss in zip(loss_dict.values(), raw_loss_list)]
-        for name, raw_loss in zip(loss_dict.keys(), raw_loss_list):
-            self.log(f'{stage}_{name}', raw_loss.item(), on_step=False, on_epoch=True, prog_bar=False)
-
-        return sum(weighted_loss)
-
     def __configure_loss(self):
-        # User-defined function list. Recommend using `_loss` suffix in loss names.
-        user_loss_dict = {
-            "translation_loss": translation_loss
-        }
-
-        loss_dict = {**user_loss_dict}
-
         def loss_func(inputs, labels, stage):
-            return self.__calculate_loss_and_log(
-                inputs=inputs,
-                labels=labels,
-                loss_dict=loss_dict,
-                stage=stage
-            )
+            loss = translation_loss(inputs, labels, pad_token_id=99999)
+            self.log(f'{stage}_translation_loss', loss.item(), on_step=False, on_epoch=True, prog_bar=False)
+            return loss
 
         return loss_func
 

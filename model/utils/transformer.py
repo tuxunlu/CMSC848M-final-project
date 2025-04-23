@@ -4,20 +4,23 @@ import math
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
+    def __init__(self, d_model, max_len=0):  # max_len no longer needed
         super().__init__()
-        pe = torch.zeros(max_len, d_model)  # [max_len, d_model]
-        position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)  # [max_len, 1]
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))  # [d_model/2]
-        pe[:, 0::2] = torch.sin(position * div_term)  # even indices
-        pe[:, 1::2] = torch.cos(position * div_term)  # odd indices
-        pe = pe.unsqueeze(0)  # [1, max_len, d_model]
-        self.register_buffer('pe', pe)
+        self.d_model = d_model
 
     def forward(self, x):
-        # x: [batch_size, seq_len, d_model]
-        x = x + self.pe[:, :x.size(1)]
-        return x
+        seq_len = x.size(1)
+        device = x.device
+
+        position = torch.arange(0, seq_len, dtype=torch.float32, device=device).unsqueeze(1)  # [seq_len, 1]
+        div_term = torch.exp(torch.arange(0, self.d_model, 2, device=device).float() * (-math.log(10000.0) / self.d_model))  # [d_model/2]
+        
+        pe = torch.zeros(seq_len, self.d_model, device=device)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)  # [1, seq_len, d_model]
+
+        return x + pe
 
 
 class FeedForward(nn.Module):
@@ -45,7 +48,7 @@ class EncoderLayer(nn.Module):
 
     def forward(self, x, src_mask=None):
         # Self-attention
-        attn_output, _ = self.self_attn(x, x, x, attn_mask=src_mask)
+        attn_output, _ = self.self_attn(x, x, x, key_padding_mask=~src_mask)
         x = self.norm1(x + self.dropout(attn_output))
         # Feed forward
         ff_output = self.ff(x)
@@ -79,11 +82,13 @@ class DecoderLayer(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, src_vocab_size, tgt_vocab_size, d_model=512, num_heads=8,
-                 num_encoder_layers=6, num_decoder_layers=6, dim_ff=2048, dropout=0.1, max_len=512):
+                 num_encoder_layers=6, num_decoder_layers=6, dim_ff=2048, dropout=0.1, input_max_len=512, output_max_len=512):
         super().__init__()
         self.src_tok_emb = nn.Embedding(src_vocab_size, d_model)
         self.tgt_tok_emb = nn.Embedding(tgt_vocab_size, d_model)
-        self.pos_enc = PositionalEncoding(d_model, max_len)
+        self.src_pos_enc = PositionalEncoding(d_model, input_max_len)
+        self.tgt_pos_enc = PositionalEncoding(d_model, output_max_len)
+
 
         self.encoder = nn.ModuleList([
             EncoderLayer(d_model, num_heads, dim_ff, dropout)
@@ -99,8 +104,8 @@ class Transformer(nn.Module):
 
     def forward(self, src, tgt, src_mask=None, tgt_mask=None, memory_mask=None):
         # Embedding + Positional Encoding
-        src = self.pos_enc(self.src_tok_emb(src))  # [B, S, D]
-        tgt = self.pos_enc(self.tgt_tok_emb(tgt))  # [B, T, D]
+        src = self.src_pos_enc(self.src_tok_emb(src))  # [B, S, D]
+        tgt = self.tgt_pos_enc(self.tgt_tok_emb(tgt))  # [B, T, D]
 
         # Encoder
         memory = src

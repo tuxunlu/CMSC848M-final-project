@@ -17,7 +17,8 @@ class Baseline(nn.Module):
             num_decoder_layers=6, 
             dim_ff=1024, 
             dropout=0.1, 
-            max_len=512,
+            src_max_len=512,
+            tgt_max_len=512,
             # VQVAE parameters
             h_dim=128, 
             res_h_dim=128, 
@@ -29,7 +30,7 @@ class Baseline(nn.Module):
             pretrained_vqvae_path=None,
         ):
         super(Baseline, self).__init__()
-        if 'pretrained_vqvae_path' is None:
+        if 'pretrained_vqvae_path' == None:
             raise KeyError("Key pretrained_vqvae_path is None!")
         self.vqvae = self.load_vqvae_model(
             pretrained_vqvae_path, 
@@ -49,20 +50,34 @@ class Baseline(nn.Module):
             num_decoder_layers=num_decoder_layers, 
             dim_ff=dim_ff, 
             dropout=dropout, 
-            max_len=max_len
+            input_max_len=src_max_len,
+            output_max_len=tgt_max_len,
         )
 
         # Freeze parameters of VQVAE for inference only
         for param in self.vqvae.parameters():
             param.requires_grad = False
 
+        self.vqvae.eval()
+
     def load_vqvae_model(self, pretrained_vqvae_path, **kwargs):
         model = VQVAE(**kwargs)
-        model.load_state_dict(torch.load(pretrained_vqvae_path))
+        checkpoint = torch.load(pretrained_vqvae_path)
+        
+        # Remove "model." prefix
+        state_dict = checkpoint['state_dict']
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            new_k = k.replace("model.", "")  # Remove the prefix
+            new_state_dict[new_k] = v
+
+        model.load_state_dict(new_state_dict)
         return model
     
     def forward(self, image, caption, src_mask):
-        image_sentence = self.vqvae.encoder_forward(image)
+        src_mask = src_mask.bool()
+        with torch.no_grad():
+            image_sentence = self.vqvae.encoder_forward(image)
         pred_image_sentence = self.transformer(caption, image_sentence, src_mask=src_mask)
 
         return image_sentence, pred_image_sentence

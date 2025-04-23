@@ -18,11 +18,11 @@ strategy: ddp
 dataset_class_name: coco
 dataset_dir: dataset
 split_ratios: [0.8, 0.1, 0.1]
-batch_size: 2
+batch_size: 32
 num_workers: 8
 persistent_workers: True
-img_dir: data/coco/images
-ann_dir: data/coco/annotations
+img_dir: dataset/coco/images
+ann_dir: dataset/coco/annotations
 
 ################# Model Architecture, Optimizers and Loss Functions #################
 # Basic setting
@@ -30,7 +30,7 @@ model_class_name: baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
-pretrained_vqvae_path: model_state_dict.pth
+pretrained_vqvae_path: lightning_logs/vqvae/version_0/checkpoints/last.ckpt
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
@@ -40,7 +40,7 @@ beta: 0.25
 save_img_embedding_map: False
 
 # Transformer model setting
-src_vocab_size: 49408
+src_vocab_size: 49408 # 49406 + <start>/<end> token. <start> token id is 49406, <end> token id is 49407
 tgt_vocab_size: 1026 # 1024 + <start>/<end> tokens
 d_model: 512
 num_heads: 8
@@ -48,7 +48,8 @@ num_encoder_layers: 2
 num_decoder_layers: 2
 dim_ff: 512
 dropout: 0.1
-max_len: 256
+input_max_len: 256
+output_max_len: 1200
 
 ################# Tensorboard Logger Setting #################
 log_dir: 'lightning_logs'
