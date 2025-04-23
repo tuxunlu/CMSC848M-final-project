@@ -74,10 +74,15 @@ class Baseline(nn.Module):
         model.load_state_dict(new_state_dict)
         return model
     
-    def forward(self, image, caption, src_mask):
+    def forward(self, image, caption, src_mask, gen_image):
         src_mask = src_mask.bool()
         with torch.no_grad():
             image_sentence = self.vqvae.encoder_forward(image)
         pred_image_sentence = self.transformer(caption, image_sentence, src_mask=src_mask)
 
-        return image_sentence, pred_image_sentence
+        pred_image = None
+        if gen_image:
+            with torch.no_grad():
+                pred_image = self.vqvae.decoder_forward(pred_image_sentence)
+
+        return image_sentence, pred_image_sentence, pred_image

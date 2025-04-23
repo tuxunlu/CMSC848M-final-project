@@ -14,13 +14,13 @@ class ModelInterfaceBaseline(pl.LightningModule):
         self.model = self.__load_model()
         self.loss_function = self.__configure_loss()
 
-    def forward(self, image, caption, mask):
-        return self.model(image, caption, mask)
+    def forward(self, image, caption, mask, gen_image):
+        return self.model(image, caption, mask, gen_image=gen_image)
 
     # Caution: self.model.train() is invoked
     def training_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook = self(image, caption, mask)
+        image_codebook, translated_image_codebook, _ = self(image, caption, mask, gen_image=False)
         train_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
 
         self.log('train_loss', train_loss, on_step=True, on_epoch=False, prog_bar=True)
@@ -32,7 +32,7 @@ class ModelInterfaceBaseline(pl.LightningModule):
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def validation_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook = self(image, caption, mask)
+        image_codebook, translated_image_codebook, image = self(image, caption, mask, True)
         val_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
 
         self.log('val_loss', val_loss, on_step=True, on_epoch=False, prog_bar=True)
@@ -44,7 +44,7 @@ class ModelInterfaceBaseline(pl.LightningModule):
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def test_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook = self(image, caption, mask)
+        image_codebook, translated_image_codebook, image = self(image, caption, mask, True)
         test_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
 
         self.log('train_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
