@@ -45,9 +45,9 @@ class ModelInterfaceBaseline(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         image, caption, mask = batch
         image_codebook, translated_image_codebook, image = self(image, caption, mask, True)
-        test_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
+        test_loss = self.loss_function(translated_image_codebook, image_codebook, 'test')
 
-        self.log('train_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log('test_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
         # Replace the following with evaluations like BLEU score
         # self.log('train_acc', correct_num / len(out_digit), on_step=True, on_epoch=False, prog_bar=True)
 

@@ -103,8 +103,41 @@ def get_checkpoint_path(config):
 
     return checkpoint_directory, checkpoint_file_path
 
+def inference_main(config):
+    # Set random seed
+    pl.seed_everything(config['seed'])
 
-def main(config):
+    # Instantiate model and data module
+    data_module = DataInterface(**config)
+    test_dataloader = data_module.test_dataloader()
+    if not (config['infer_vqvae'] ^ config['infer_baseline']):
+        raise ValueError(f"infer_vqvae: {config['infer_vqvae']} and infer_baseline: {config['infer_baseline']}: cannot be True or False at the same time! Set only one variable to True to start a single inferring process")
+    if config['infer_vqvae']:
+        model_module = ModelInterfaceVQVAE(**config) 
+    else:
+        model_module = ModelInterfaceBaseline(**config) 
+
+    if not os.path.exists(config_dict['resume_from_manual_checkpoint']):
+        raise FileNotFoundError(f"Checkpoint file not found! Input file: {config_dict['resume_from_manual_checkpoint']}")
+    
+    model_module.load_from_checkpoint(config_dict['resume_from_manual_checkpoint'])
+    model_module.eval()
+
+    # Add resume_from_checkpoint to the trainer initialization
+    signature = inspect.signature(Trainer.__init__)
+    filtered_trainer_keywords = {}
+    for arg in list(signature.parameters.keys()):
+        if arg in config:
+            filtered_trainer_keywords[arg] = config[arg]
+
+    # Instantiate the Trainer object
+    trainer = Trainer(**filtered_trainer_keywords)
+
+    # Do inference
+    trainer.test(model=model_module, dataloader=test_dataloader)
+
+
+def training_main(config):
     # Set random seed
     pl.seed_everything(config['seed'])
 
@@ -154,11 +187,13 @@ if __name__ == '__main__':
     parser.add_argument('--config_path', default=os.path.join(os.getcwd(), 'config', 'config.yaml'), type=str, required=False,
                         help='Path of config file')
     parser.add_argument('--train_vqvae', action='store_true', help='Indicate the training process for VQVAE')
+    parser.add_argument('--infer_vqvae', action='store_true', help='Load vqvae and infer')
     parser.add_argument('--train_baseline', action='store_true', help='Indicate the training process for Baseline model')
-    parser.add_argument('--resume_from_last_checkpoint', default=None, type=bool, required=False, 
+    parser.add_argument('--infer_baseline', action='store_true', help='Load baseline and infer')
+    parser.add_argument('--resume_from_last_checkpoint', action='store_true', 
                     help='Automatically find the log folder with latest timestamp and latest version, and load `latest-...`.ckpt model')
     parser.add_argument('--resume_from_manual_checkpoint', default=None, type=str, required=False,
-                    help='Manually designate the path to a checkpoint file(.ckpt) to resume training from.')
+                    help='Manually designate the path to a checkpoint file(.ckpt) to load model.')
 
     # Parse arguments(set attributes for sys.args using above arguments)
     args = parser.parse_args()
@@ -176,7 +211,14 @@ if __name__ == '__main__':
     config_dict['resume_from_last_checkpoint'] = args.resume_from_last_checkpoint
     config_dict['train_vqvae'] = args.train_vqvae
     config_dict['train_baseline'] = args.train_baseline
+    config_dict['infer_vqvae'] = args.infer_vqvae
+    config_dict['infer_baseline'] = args.infer_baseline
     config_dict = dict([(k.lower(), v) for k, v in config_dict.items()])
 
     # Activate main function
-    main(config_dict)
+    if config_dict['train_vqvae'] or config_dict['train_baseline']:
+        training_main(config=config_dict)
+    elif config_dict['infer_vqvae'] or config_dict['infer_baseline']:
+        inference_main(config=config_dict)
+    else:
+        raise ValueError(f"train_vqvae: {config_dict['train_vqvae']}, train_baseline: {config_dict['train_baseline']}, infer_vqvae: {config_dict['infer_vqvae']}, infer_baseline: {config_dict['infer_baseline']}")
