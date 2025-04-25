@@ -3,9 +3,9 @@ deterministic: False
 use_compile: True
 seed: 1234
 lr: 1e-3
-max_epochs: 100
+max_epochs: 40
 lr_scheduler: step
-lr_decay_epochs: 10
+lr_decay_epochs: 4
 lr_decay_rate: 0.5
 lr_decay_min_lr: 1e-6
 
