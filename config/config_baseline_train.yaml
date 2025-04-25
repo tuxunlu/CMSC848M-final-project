@@ -8,6 +8,7 @@ lr_scheduler: step
 lr_decay_epochs: 4
 lr_decay_rate: 0.5
 lr_decay_min_lr: 1e-6
+infer_stage: False
 
 ################# Distributed Training Control #################
 devices: 4
@@ -32,6 +33,7 @@ weight_decay: 1e-6
 
 # VQVAE model setting
 pretrained_vqvae_path: lightning_logs/vqvae/version_0/checkpoints/last.ckpt
+pretrained_transformer_path: None
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4

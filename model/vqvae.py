@@ -54,7 +54,6 @@ class Vqvae(nn.Module):
         Returns reconstructed image of shape (B, 3, H, W)
         """
         B, L = token_indices.shape  # L = 1200
-        assert L == 1200, "Expected token sequence length 1200"
 
         n_embeddings = self.vector_quantization.n_e
         embedding_dim = self.vector_quantization.e_dim

@@ -117,12 +117,6 @@ def inference_main(config):
     else:
         model_module = ModelInterfaceBaseline(**config) 
 
-    if not os.path.exists(config_dict['resume_from_manual_checkpoint']):
-        raise FileNotFoundError(f"Checkpoint file not found! Input file: {config_dict['resume_from_manual_checkpoint']}")
-    
-    model_module.load_from_checkpoint(config_dict['resume_from_manual_checkpoint'])
-    model_module.eval()
-
     # Add resume_from_checkpoint to the trainer initialization
     signature = inspect.signature(Trainer.__init__)
     filtered_trainer_keywords = {}
@@ -134,7 +128,7 @@ def inference_main(config):
     trainer = Trainer(**filtered_trainer_keywords)
 
     # Do inference
-    trainer.test(model=model_module, dataloader=test_dataloader)
+    trainer.test(model=model_module, dataloaders=test_dataloader)
 
 
 def training_main(config):
