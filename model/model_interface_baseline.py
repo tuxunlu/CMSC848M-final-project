@@ -72,7 +72,7 @@ class ModelInterfaceBaseline(pl.LightningModule):
 
         return {'test_loss': test_loss}
 
-    def test_epoch_end(self, outputs):
+    def on_test_epoch_end(self, outputs):
         # Compute and log average perplexity
         avg_perplexity = self.test_perplexity_avg.compute()
         self.log('perplexity', avg_perplexity, on_epoch=True, prog_bar=True)
