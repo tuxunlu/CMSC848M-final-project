@@ -46,31 +46,65 @@ class ModelInterfaceBaseline(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook, gen_image = self(image, caption, mask, gen_image=True)
-        test_loss = self.loss_function(translated_image_codebook, image_codebook, 'test')
+        image_codebook, pred_image_codebook_logits, gen_image = self(image, caption, mask, gen_image=True)
+        test_loss = self.loss_function(pred_image_codebook_logits, image_codebook, 'test')
         self.log('test_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
+
+        # Post-processing
+        translated_image_codebook = pred_image_codebook_logits.argmax(dim=-1)
+
+        # (B, 3, 640, 480)
+        real_image_uint8 = self.denormalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+        # (B, 3, 480, 640)
+        gen_image_uint8  = self.denormalize(gen_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).transpose(2, 3).contiguous()
+
+        print(real_image_uint8.dtype, real_image_uint8.shape, gen_image_uint8.dtype, gen_image_uint8.shape)
 
         # Perplexity
         perplexity = torch.exp(test_loss)
         self.test_perplexity_avg.update(perplexity)
 
         # BLEU score
-        preds = translated_image_codebook.tolist()
-        refs = image_codebook.tolist()
+        preds = [" ".join([str(tok) for tok in seq]) for seq in translated_image_codebook.tolist()]
+        refs = [" ".join([str(tok) for tok in seq]) for seq in image_codebook.tolist()]
         bleu_score = self.bleu(preds, refs)
         self.test_bleu_avg.update(bleu_score)
 
         # FID update
-        self.fid.update(gen_image, image)
+        self.fid.update(gen_image_uint8, real=False)   # generated images
+        self.fid.update(real_image_uint8, real=True)    # real images
 
         # PSNR update
-        self.psnr.update(gen_image, image)
+        self.psnr.update(gen_image_uint8, real_image_uint8)
 
         # CLIP score update: compares image and caption strings
         # caption should be a list of strings per batch element
-        self.clip.update(gen_image, caption)
+
+        # TODO: 1. Unroll batch dim, transform into list of strings
+        # TODO: 2. Detokenize torch.long() into string for each sentence
+        self.clip.update(gen_image_uint8, caption)
 
         return {'test_loss': test_loss}
+    
+    @staticmethod
+    def denormalize(img, mean, std):
+        """
+        Args:
+            img: torch tensor (B, 3, H, W) or (3, H, W), normalized float32
+            mean: list of means per channel
+            std:  list of stds per channel
+        Returns:
+            uint8 tensor (same shape), pixel range [0,255]
+        """
+        device = img.device
+        mean = torch.tensor(mean, device=device).view(-1, 1, 1)
+        std = torch.tensor(std, device=device).view(-1, 1, 1)
+        
+        img = img * std + mean  # inverse normalize
+        img = torch.clamp(img, 0, 1)  # clamp to [0,1]
+        img = (img * 255.0).round().to(torch.uint8)  # scale to [0,255] and cast
+        return img
 
     def on_test_epoch_end(self, outputs):
         # Compute and log average perplexity
