@@ -5,6 +5,7 @@ import torch.optim.lr_scheduler as lrs
 import pytorch_lightning as pl
 from typing import Callable, Dict, Tuple
 from .loss.vqvae import reconstruction_loss
+from .loss.entropy_loss import entropy_loss
 
 
 class ModelInterfaceVQVAE(pl.LightningModule):
@@ -20,8 +21,8 @@ class ModelInterfaceVQVAE(pl.LightningModule):
     # Caution: self.model.train() is invoked
     def training_step(self, batch, batch_idx):
         image, caption = batch
-        embedding_loss, x_hat, perplexity, _ = self(image)
-        train_loss = embedding_loss + self.loss_function(x_hat, image, stage='train')
+        embedding_loss, x_hat, perplexity, tokens = self(image)
+        train_loss = embedding_loss + self.loss_function(x_hat, image, tokens, stage='train')
 
         self.log('train_loss', train_loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('train_embedding_loss', embedding_loss, on_step=True, on_epoch=False, prog_bar=True)
@@ -32,8 +33,8 @@ class ModelInterfaceVQVAE(pl.LightningModule):
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def validation_step(self, batch, batch_idx):
         image, caption = batch
-        embedding_loss, x_hat, perplexity, _ = self(image)
-        val_loss = embedding_loss + self.loss_function(x_hat, image, stage='val')
+        embedding_loss, x_hat, perplexity, tokens = self(image)
+        val_loss = embedding_loss + self.loss_function(x_hat, image, tokens, stage='val')
 
         self.log('val_loss', val_loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('val_embedding_loss', embedding_loss, on_step=True, on_epoch=False, prog_bar=True)
@@ -44,8 +45,8 @@ class ModelInterfaceVQVAE(pl.LightningModule):
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def test_step(self, batch, batch_idx):
         image, caption = batch
-        embedding_loss, x_hat, perplexity, _ = self(image)
-        test_loss = embedding_loss + self.loss_function(x_hat, image, stage='test')
+        embedding_loss, x_hat, perplexity, tokens = self(image)
+        test_loss = embedding_loss + self.loss_function(x_hat, image, tokens, stage='test')
 
         self.log('test_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log('test_embedding_loss', embedding_loss, on_step=True, on_epoch=False, prog_bar=True)
@@ -91,20 +92,15 @@ class ModelInterfaceVQVAE(pl.LightningModule):
         return sum(weighted_loss)
 
     def __configure_loss(self):
-        # User-defined function list. Recommend using `_loss` suffix in loss names.
-        user_loss_dict = {
-            "reconstruction_loss": (1.0, reconstruction_loss)
-        }
+        def loss_func(inputs, labels, tokens, stage):
+            recon_loss = reconstruction_loss(inputs, labels)
+            self.log(f'{stage}_reconstruction_loss', recon_loss.item(), on_step=False, on_epoch=True, prog_bar=False)
 
-        loss_dict = {**user_loss_dict}
+            token_lens = tokens.shape[1]
+            entropy_loss_val = entropy_loss(tokens, token_lens)
+            self.log(f'{stage}_entropy_loss', entropy_loss_val.item(), on_step=False, on_epoch=True, prog_bar=False)
 
-        def loss_func(inputs, labels, stage):
-            return self.__calculate_loss_and_log(
-                inputs=inputs,
-                labels=labels,
-                loss_dict=loss_dict,
-                stage=stage
-            )
+            return recon_loss + 0.1 * entropy_loss
 
         return loss_func
 

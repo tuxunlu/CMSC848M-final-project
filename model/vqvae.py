@@ -27,13 +27,16 @@ class Vqvae(nn.Module):
         embedding_loss, z_q, perplexity, _, min_encoding_indices = self.vector_quantization(z_e)
         x_hat = self.decoder(z_q)
 
+        B, _, H, W = z_e.shape  # expected (B, C, 30, 40) ⇒ 1200 tokens
+        token_seq = min_encoding_indices.view(B, -1).long()  # (B, 1200)
+
         if verbose:
             print('original data shape:', x.shape)
             print('encoded data shape:', z_e.shape)
             print('recon data shape:', x_hat.shape)
             assert False
 
-        return embedding_loss, x_hat, perplexity, min_encoding_indices
+        return embedding_loss, x_hat, perplexity, token_seq
 
     def encoder_forward(self, x):
         """
