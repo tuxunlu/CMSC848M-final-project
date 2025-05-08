@@ -22,7 +22,7 @@ def load_callbacks(config):
     callbacks.append(plc.EarlyStopping(
         monitor='train_loss',
         mode='min',
-        patience=5,
+        patience=10,
         min_delta=1e-5
     ))
 
@@ -172,11 +172,7 @@ def training_main(config):
     # Instantiate the Trainer object
     trainer = Trainer(**filtered_trainer_keywords)
 
-    if args.test_only:
-        trainer.test(model=model_module, datamodule=data_module, ckpt_path=checkpoint_file_path)
-    else:
-        # Launch the training
-        trainer.fit(model=model_module, datamodule=data_module, ckpt_path=checkpoint_file_path)
+    trainer.fit(model=model_module, datamodule=data_module, ckpt_path=checkpoint_file_path)
 
 
 if __name__ == '__main__':

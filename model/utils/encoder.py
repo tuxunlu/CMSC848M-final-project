@@ -21,16 +21,18 @@ class Encoder(nn.Module):
 
     """
 
-    def __init__(self, in_dim, h_dim, n_res_layers, res_h_dim):
+    def __init__(self, in_dim, h_dim, n_res_layers, res_h_dim, downsample_height, downsample_width):
         super(Encoder, self).__init__()
         kernel = 4
         stride = 2
+        first_conv_stride = (2 if downsample_width >= 2 else 1, 2 if downsample_height >=2 else 1)
+        second_conv_stride = (2 if downsample_width == 4 else 1, 2 if downsample_height == 4 else 1)
         self.conv_stack = nn.Sequential(
             nn.Conv2d(in_dim, h_dim // 2, kernel_size=kernel,
-                      stride=stride, padding=1),
+                      stride=first_conv_stride, padding=1),
             nn.ReLU(),
             nn.Conv2d(h_dim // 2, h_dim // 2, kernel_size=kernel-1, 
-                      stride=stride, padding=1),
+                      stride=second_conv_stride, padding=1),
             nn.ReLU(),
             nn.Conv2d(h_dim // 2, h_dim // 2, kernel_size=kernel-1, 
                       stride=stride, padding=1),

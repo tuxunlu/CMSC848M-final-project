@@ -20,7 +20,7 @@ class ModelInterfaceVQVAE(pl.LightningModule):
 
     # Caution: self.model.train() is invoked
     def training_step(self, batch, batch_idx):
-        image, caption = batch
+        image, caption, valid_mask = batch
         embedding_loss, x_hat, perplexity, tokens = self(image)
         train_loss = embedding_loss + self.loss_function(x_hat, image, tokens, stage='train')
 
@@ -32,7 +32,7 @@ class ModelInterfaceVQVAE(pl.LightningModule):
 
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def validation_step(self, batch, batch_idx):
-        image, caption = batch
+        image, caption, valid_mask = batch
         embedding_loss, x_hat, perplexity, tokens = self(image)
         val_loss = embedding_loss + self.loss_function(x_hat, image, tokens, stage='val')
 
@@ -44,7 +44,7 @@ class ModelInterfaceVQVAE(pl.LightningModule):
 
     # Caution: self.model.eval() is invoked and this function executes within a <with torch.no_grad()> context
     def test_step(self, batch, batch_idx):
-        image, caption = batch
+        image, caption, valid_mask = batch
         embedding_loss, x_hat, perplexity, tokens = self(image)
         test_loss = embedding_loss + self.loss_function(x_hat, image, tokens, stage='test')
 
@@ -100,7 +100,7 @@ class ModelInterfaceVQVAE(pl.LightningModule):
             entropy_loss_val = entropy_loss(tokens, token_lens)
             self.log(f'{stage}_entropy_loss', entropy_loss_val.item(), on_step=False, on_epoch=True, prog_bar=False)
 
-            return recon_loss + 0.1 * entropy_loss
+            return recon_loss + 0.1 * entropy_loss_val
 
         return loss_func
 

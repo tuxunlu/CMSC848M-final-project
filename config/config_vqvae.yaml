@@ -1,6 +1,7 @@
 ################# Training Control #################
 deterministic: False
 use_compile: True
+test_only: False
 seed: 1234
 lr: 1e-3
 max_epochs: 40
@@ -36,6 +37,8 @@ res_h_dim: 128
 n_res_layers: 4
 n_embeddings: 1024
 embedding_dim: 128
+downsample_height: 2
+downsample_width: 4
 beta: 0.25
 save_img_embedding_map: False
 

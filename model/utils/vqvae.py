@@ -9,12 +9,12 @@ from .decoder import Decoder
 
 class VQVAE(nn.Module):
     def __init__(self, h_dim=128, res_h_dim=128, n_res_layers=4,
-                 n_embeddings=1024, embedding_dim=128, beta=0.25, save_img_embedding_map=False):
+                 n_embeddings=1024, embedding_dim=128, beta=0.25, save_img_embedding_map=False, downsample_height=4, downsample_width=4):
         super(VQVAE, self).__init__()
-        self.encoder = Encoder(3, h_dim, n_res_layers, res_h_dim)
+        self.encoder = Encoder(3, h_dim, n_res_layers, res_h_dim, downsample_height=downsample_height, downsample_width=downsample_width)
         self.pre_quantization_conv = nn.Conv2d(h_dim, embedding_dim, kernel_size=1, stride=1)
         self.vector_quantization = VectorQuantizer(n_embeddings, embedding_dim, beta)
-        self.decoder = Decoder(embedding_dim, h_dim, n_res_layers, res_h_dim)
+        self.decoder = Decoder(embedding_dim, h_dim, n_res_layers, res_h_dim, downsample_height, downsample_width)
 
         if save_img_embedding_map:
             self.img_to_embedding_map = {i: [] for i in range(n_embeddings)}

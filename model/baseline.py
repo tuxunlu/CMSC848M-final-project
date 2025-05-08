@@ -28,7 +28,9 @@ class Baseline(nn.Module):
             beta=0.25, 
             save_img_embedding_map=False,
             pretrained_vqvae_path=None,
-            pretrained_transformer_path=None
+            pretrained_transformer_path=None,
+            downsample_height=4,
+            downsample_width=4,
         ):
         super(Baseline, self).__init__()
         if 'pretrained_vqvae_path' == None:
@@ -43,7 +45,9 @@ class Baseline(nn.Module):
             n_embeddings=n_embeddings, 
             embedding_dim=embedding_dim, 
             beta=beta, 
-            save_img_embedding_map=save_img_embedding_map
+            save_img_embedding_map=save_img_embedding_map,
+            downsample_height=downsample_height,
+            downsample_width=downsample_width,
         )
         self.transformer = Transformer(
             src_vocab_size=src_vocab_size, 
