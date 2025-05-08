@@ -30,8 +30,6 @@ class Vqvae(nn.Module):
         B, _, H, W = z_e.shape  # expected (B, C, 30, 40) ⇒ 1200 tokens
         token_seq = min_encoding_indices.view(B, -1).long()  # (B, 1200)
 
-        print(f"token_seq shape: {token_seq.shape}")
-
         if verbose:
             print('original data shape:', x.shape)
             print('encoded data shape:', z_e.shape)
