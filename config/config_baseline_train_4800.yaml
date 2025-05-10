@@ -32,19 +32,21 @@ model_class_name: baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
-pretrained_vqvae_path: lightning_logs/vqvae/version_0/checkpoints/last.ckpt
+pretrained_vqvae_path: lightning_logs/vqvae_4800/version_0/checkpoints/last.ckpt
 pretrained_transformer_path: None
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
 n_embeddings: 1024
 embedding_dim: 128
+downsample_height: 2
+downsample_width: 2
 beta: 0.25
 save_img_embedding_map: False
 
 # Transformer model setting
 src_vocab_size: 49408 # 49406 + <start>/<end> token. <start> token id is 49406, <end> token id is 49407
-tgt_vocab_size: 1026 # 1024 + <start>/<end> tokens
+tgt_vocab_size: 1024 # 1024
 d_model: 512
 num_heads: 8
 num_encoder_layers: 2
@@ -52,7 +54,7 @@ num_decoder_layers: 2
 dim_ff: 512
 dropout: 0.1
 input_max_len: 256
-output_max_len: 1200
+output_max_len: 4800
 
 ################# Tensorboard Logger Setting #################
 log_dir: 'lightning_logs'

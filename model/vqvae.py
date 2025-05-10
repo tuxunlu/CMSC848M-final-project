@@ -51,12 +51,12 @@ class Vqvae(nn.Module):
 
         return token_seq  # shape: (B, 1200), dtype=torch.long
 
-    def decoder_forward(self, token_indices):
+    def decoder_forward(self, token_indices, downsample_height, downsample_width):
         """
         Decode from (B, 1200) token sequence of type torch.long to image
         Returns reconstructed image of shape (B, 3, H, W)
         """
-        B, L = token_indices.shape  # L = 1200
+        B, L = token_indices.shape
 
         n_embeddings = self.vector_quantization.n_e
         embedding_dim = self.vector_quantization.e_dim
@@ -69,8 +69,10 @@ class Vqvae(nn.Module):
         # Project one-hot to quantized embedding space: (B, L, embedding_dim)
         z_q = torch.matmul(one_hot, self.vector_quantization.embedding.weight)  # (B, L, emb_dim)
 
-        # Reshape to image-shaped feature map: (B, emb_dim, 30, 40)
-        z_q = z_q.view(B, 30, 40, embedding_dim).permute(0, 3, 1, 2).contiguous()
+        # Reshape to image-shaped feature map: (B, emb_dim, 30, 40) if downsample_height = 4, downsample_width = 4
+        fmap_height = int(120 / downsample_height)
+        fmap_width = int(160 / downsample_width)
+        z_q = z_q.view(B, fmap_height, fmap_width, embedding_dim).permute(0, 3, 1, 2).contiguous()
 
         x_hat = self.decoder(z_q)
 

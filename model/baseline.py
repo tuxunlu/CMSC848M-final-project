@@ -36,6 +36,8 @@ class Baseline(nn.Module):
         if 'pretrained_vqvae_path' == None:
             raise KeyError("Key pretrained_vqvae_path is None!")
         
+        self.downsample_height = downsample_height
+        self.downsample_width = downsample_width
 
         self.vqvae = self.load_vqvae_model(
             pretrained_vqvae_path, 
@@ -60,7 +62,7 @@ class Baseline(nn.Module):
             dropout=dropout, 
             input_max_len=src_max_len,
             output_max_len=tgt_max_len,
-        ) if pretrained_transformer_path == None else self.load_pretrained_transformer(
+        ) if pretrained_transformer_path == 'None' else self.load_pretrained_transformer(
             pretrained_path=pretrained_transformer_path, 
             src_vocab_size=src_vocab_size,
             tgt_vocab_size=tgt_vocab_size, 
@@ -121,6 +123,6 @@ class Baseline(nn.Module):
         if gen_image:
             pred_image_sentence = pred_sentence_prob.argmax(dim=-1)
             with torch.no_grad():
-                pred_image = self.vqvae.decoder_forward(pred_image_sentence)
+                pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
 
         return image_sentence, pred_sentence_prob, pred_image
