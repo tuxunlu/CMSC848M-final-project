@@ -1,4 +1,8 @@
 __pycache__/
 data/
+<<<<<<< HEAD
 lightning_logs/
 **.pth
+=======
+lightning_logs/
+>>>>>>> origin/main
