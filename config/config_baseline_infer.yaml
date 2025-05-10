@@ -17,14 +17,14 @@ strategy: ddp
 
 ################# Dataset Setting #################
 dataset_class_name: coco
-dataset_dir: dataset
+dataset_dir: data
 split_ratios: [0.8, 0.1, 0.1]
 batch_size: 32
 test_batch_size: 32
 num_workers: 8
 persistent_workers: True
-img_dir: dataset/coco/images
-ann_dir: dataset/coco/annotations
+img_dir: data/coco/images
+ann_dir: data/coco/annotations
 
 ################# Model Architecture, Optimizers and Loss Functions #################
 # Basic setting
@@ -32,8 +32,8 @@ model_class_name: baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
-pretrained_vqvae_path: lightning_logs/vqvae/version_0/checkpoints/last.ckpt
-pretrained_transformer_path: 'lightning_logs/20250423-12-22-12-main/version_0/checkpoints/best-epoch=000-train_loss=0.000053.ckpt'
+pretrained_vqvae_path: //fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/vqvae/vqvae_4800/version_0/checkpoints/best-epoch=004-train_loss=0.128738.ckpt
+pretrained_transformer_path: /fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/transformer/version_0/checkpoints/best-epoch=000-train_loss=0.000053.ckpt
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
