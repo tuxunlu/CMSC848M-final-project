@@ -13,7 +13,7 @@ infer_stage: False
 ################# Distributed Training Control #################
 devices: 4
 num_nodes: 1
-strategy: ddp
+strategy: ddp_find_unused_parameters_true
 
 ################# Dataset Setting #################
 dataset_class_name: coco
