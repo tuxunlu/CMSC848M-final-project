@@ -19,6 +19,7 @@ class Baseline(nn.Module):
             dropout=0.1, 
             src_max_len=512,
             tgt_max_len=512,
+            tgt_start_token_id=1024,
             # VQVAE parameters
             h_dim=128, 
             res_h_dim=128, 
@@ -38,6 +39,7 @@ class Baseline(nn.Module):
         
         self.downsample_height = downsample_height
         self.downsample_width = downsample_width
+        self.tgt_start_token_id = tgt_start_token_id
 
         self.vqvae = self.load_vqvae_model(
             pretrained_vqvae_path, 
@@ -114,14 +116,38 @@ class Baseline(nn.Module):
         
     
     def forward(self, image, caption, src_mask, gen_image):
+        B = image.shape[0]
+        total_len = int((120 / self.downsample_height) * (160 / self.downsample_width))
         src_mask = src_mask.bool()
+        # Create causal mask to prevent attending to future tokens
+        tgt_mask = torch.triu(torch.ones(total_len + 1, total_len + 1, device=image.device), diagonal=1).bool()
+        tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
         with torch.no_grad():
-            image_sentence = self.vqvae.encoder_forward(image)
-        pred_sentence_prob = self.transformer(caption, image_sentence, src_mask=src_mask)
+            if gen_image:
+                image_sentence = torch.full(
+                    (B, total_len + 1),
+                    fill_value=0,  # pad token or dummy
+                    dtype=torch.long,
+                    device=image.device
+                )
+                image_sentence[:, 0] = self.tgt_start_token_id  # set <start> at position 0
+            else:
+                image_sentence = self.vqvae.encoder_forward(image) # (B, total_len)
+                # Add a start token at the front of each image sentence
+                start_token = torch.full(
+                    (image_sentence.size(0), 1),  # (B, 1)
+                    fill_value=self.tgt_start_token_id,
+                    dtype=torch.long,
+                    device=image_sentence.device
+                )
+                image_sentence = torch.cat([start_token, image_sentence], dim=1)  # (B, total_len+1)
+        pred_sentence_prob = self.transformer(caption, image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
 
         pred_image = None
         if gen_image:
             pred_image_sentence = pred_sentence_prob.argmax(dim=-1)
+            # truncate the <start> token at front
+            pred_image_sentence = pred_image_sentence[:, 1:]  # (B, 1, total_len)
             with torch.no_grad():
                 pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
 

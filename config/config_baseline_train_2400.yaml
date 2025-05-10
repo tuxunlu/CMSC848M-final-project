@@ -46,7 +46,7 @@ save_img_embedding_map: False
 
 # Transformer model setting
 src_vocab_size: 49408 # 49406 + <start>/<end> token. <start> token id is 49406, <end> token id is 49407
-tgt_vocab_size: 1024 # 1024
+tgt_vocab_size: 1025 # 1024
 d_model: 512
 num_heads: 8
 num_encoder_layers: 2
@@ -54,7 +54,8 @@ num_decoder_layers: 2
 dim_ff: 512
 dropout: 0.1
 input_max_len: 256
-output_max_len: 2400
+output_max_len: 2401
+tgt_start_token_id: 1024
 
 ################# Tensorboard Logger Setting #################
 log_dir: 'lightning_logs'
