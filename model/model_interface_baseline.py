@@ -1,7 +1,9 @@
 import inspect
 import torch
+import os
 import importlib
 import torch.optim.lr_scheduler as lrs
+from torchvision.utils import save_image
 import pytorch_lightning as pl
 from typing import Callable, Dict, Tuple
 from .loss.translation_loss import translation_loss
@@ -10,6 +12,7 @@ from torchmetrics.image.fid import FrechetInceptionDistance
 from torchmetrics.image.psnr import PeakSignalNoiseRatio
 from torchmetrics.multimodal.clip_score import CLIPScore
 from torchmetrics import MeanMetric
+from transformers import CLIPTokenizer
 
 
 class ModelInterfaceBaseline(pl.LightningModule):
@@ -26,6 +29,17 @@ class ModelInterfaceBaseline(pl.LightningModule):
         self.clip = CLIPScore()
         self.test_perplexity_avg = MeanMetric()
         self.test_bleu_avg = MeanMetric()
+        self.test_fid_avg = MeanMetric()
+        self.test_psnr_avg = MeanMetric()
+        self.test_clip_avg = MeanMetric()
+
+        self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+
+        # Directory to save examples
+        self.save_dir = os.path.join(self.hparams.log_dir, 'imgs')
+        os.makedirs(self.save_dir, exist_ok=True)
+        self._saved_count = 0  # count of saved image pairs
+        self._max_to_save = 10  # total pairs to save
 
     def forward(self, image, caption, mask, gen_image):
         return self.model(image, caption, mask, gen_image=gen_image)
@@ -48,7 +62,6 @@ class ModelInterfaceBaseline(pl.LightningModule):
         image, caption, mask = batch
         image_codebook, pred_image_codebook_logits, gen_image = self(image, caption, mask, gen_image=True)
         test_loss = self.loss_function(pred_image_codebook_logits, image_codebook, 'test')
-        self.log('test_loss', test_loss, on_step=True, on_epoch=False, prog_bar=True)
 
         # Post-processing
         translated_image_codebook = pred_image_codebook_logits.argmax(dim=-1)
@@ -58,9 +71,20 @@ class ModelInterfaceBaseline(pl.LightningModule):
 
         # (B, 3, 480, 640)
         gen_image_uint8  = self.denormalize(gen_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).transpose(2, 3).contiguous()
+        
+        # Save up to N real/generated image pairs
+        batch_size = real_image_uint8.size(0)
+        for i in range(batch_size):
+            if self._saved_count >= self._max_to_save:
+                break
+            idx = self._saved_count
+            real_img = real_image_uint8[i]
+            gen_img = gen_image_uint8[i]
 
-        print(real_image_uint8.dtype, real_image_uint8.shape, gen_image_uint8.dtype, gen_image_uint8.shape)
-
+            save_image(real_img.float().div(255.0), os.path.join(self.save_dir, f'real_{idx}.png'))
+            save_image(gen_img.float().div(255.0), os.path.join(self.save_dir, f'gen_{idx}.png'))
+            self._saved_count += 1
+ 
         # Perplexity
         perplexity = torch.exp(test_loss)
         self.test_perplexity_avg.update(perplexity)
@@ -68,25 +92,49 @@ class ModelInterfaceBaseline(pl.LightningModule):
         # BLEU score
         preds = [" ".join([str(tok) for tok in seq]) for seq in translated_image_codebook.tolist()]
         refs = [" ".join([str(tok) for tok in seq]) for seq in image_codebook.tolist()]
-        bleu_score = self.bleu(preds, refs)
-        self.test_bleu_avg.update(bleu_score)
+        bleu_score = self.bleu(preds, [refs])
 
         # FID update
         self.fid.update(gen_image_uint8, real=False)   # generated images
-        self.fid.update(real_image_uint8, real=True)    # real images
+        self.fid.update(real_image_uint8, real=True)   # real images
+        fid = self.fid.compute()
 
         # PSNR update
-        self.psnr.update(gen_image_uint8, real_image_uint8)
+        print(gen_image_uint8.shape, real_image_uint8.shape)
+        psnr = self.psnr(gen_image_uint8, real_image_uint8)
+
 
         # CLIP score update: compares image and caption strings
-        # caption should be a list of strings per batch element
+        captions_str = self.tokenizer.batch_decode(
+            caption,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True
+        )
 
-        # TODO: 1. Unroll batch dim, transform into list of strings
-        # TODO: 2. Detokenize torch.long() into string for each sentence
-        self.clip.update(gen_image_uint8, caption)
+        clip = self.clip(gen_image_uint8, captions_str)
 
-        return {'test_loss': test_loss}
-    
+        self.log('test_loss',       test_loss,     on_step=True, on_epoch=True)
+        self.log('test_perplexity', perplexity,    on_step=True, on_epoch=True)
+        self.log('test_bleu',       bleu_score,    on_step=True, on_epoch=True)
+        self.log('test_fid',        fid,     on_step=True, on_epoch=True)
+        self.log('test_psnr',       psnr,    on_step=True, on_epoch=True)
+        self.log('test_clip_score', clip,    on_step=True, on_epoch=True)
+
+        self.test_bleu_avg.update(bleu_score)
+        self.test_perplexity_avg.update(perplexity)
+        self.test_fid_avg.update(fid)
+        self.test_psnr_avg.update(psnr)
+        self.test_clip_avg.update(clip)
+
+        return {
+            'test_loss': test_loss,
+            'bleu': self.test_bleu_avg.compute(),
+            'perplexity': self.test_perplexity_avg.compute(),
+            'fid': self.fid.compute(),
+            'psnr': self.psnr.compute(),
+            'clip_score': self.clip.compute()
+        }
+
     @staticmethod
     def denormalize(img, mean, std):
         """
@@ -107,32 +155,21 @@ class ModelInterfaceBaseline(pl.LightningModule):
         return img
 
     def on_test_epoch_end(self, outputs):
-        # Compute and log average perplexity
-        avg_perplexity = self.test_perplexity_avg.compute()
-        self.log('perplexity', avg_perplexity, on_epoch=True, prog_bar=True)
-        self.test_perplexity_avg.reset()
+        self.log('test_loss_avg', self.test_perplexity_avg.compute(), on_step=False, on_epoch=True)
+        self.log('test_perplexity_avg', self.test_perplexity_avg.compute(), on_step=False, on_epoch=True)
+        self.log('test_bleu_avg', self.test_bleu_avg.compute(), on_step=False, on_epoch=True)
+        self.log('test_fid_avg', self.test_fid_avg.compute(), on_step=False, on_epoch=True)
+        self.log('test_psnr_avg', self.test_psnr_avg.compute(), on_step=False, on_epoch=True)
+        self.log('test_clip_avg', self.test_clip_avg.compute(), on_step=False, on_epoch=True)
 
-        # Compute and log average BLEU score
-        avg_bleu = self.test_bleu_avg.compute()
-        self.log('bleu', avg_bleu, on_epoch=True, prog_bar=True)
-        self.test_bleu_avg.reset()
-
-        # Compute and log FID
-        fid_value = self.fid.compute()
-        self.log('fid', fid_value, on_epoch=True, prog_bar=True)
-        self.fid.reset()
-
-        # Compute and log PSNR
-        psnr_value = self.psnr.compute()
-        self.log('psnr', psnr_value, on_epoch=True, prog_bar=True)
-        self.psnr.reset()
-
-        # Compute and log CLIP Score
-        clip_value = self.clip.compute()
-        self.log('clip_score', clip_value, on_epoch=True, prog_bar=True)
-        self.clip.reset()
-
-        return {'perplexity': avg_perplexity, 'bleu': avg_bleu, 'fid': fid_value, 'psnr': psnr_value, 'clip_score': clip_value}
+        return {
+            'test_loss_avg': self.test_perplexity_avg.compute(),
+            'test_perplexity_avg': self.test_perplexity_avg.compute(),
+            'test_bleu_avg': self.test_bleu_avg.compute(),
+            'test_fid_avg': self.test_fid_avg.compute(),
+            'test_psnr_avg': self.test_psnr_avg.compute(),
+            'test_clip_avg': self.test_clip_avg.compute()
+        }
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(

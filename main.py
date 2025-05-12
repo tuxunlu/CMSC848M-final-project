@@ -8,10 +8,10 @@ import inspect
 
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 
 from model import ModelInterfaceBaseline, ModelInterfaceVQVAE
-from data import DataInterface
+from datasets import DataInterface
 
 
 # For all built-in callback functions, see: https://lightning.ai/docs/pytorch/stable/api_references.html#callbacks
@@ -103,19 +103,32 @@ def get_checkpoint_path(config):
 
     return checkpoint_directory, checkpoint_file_path
 
+
 def inference_main(config):
     # Set random seed
     pl.seed_everything(config['seed'])
 
-    # Instantiate model and data module
+    # Use CSVLogger for inference
+    csv_logger = CSVLogger(
+        save_dir='.',
+        name='inference',
+        flush_logs_every_n_steps=1
+    )
+    config['logger'] = csv_logger
+    config['log_every_n_steps'] = 1
+
     data_module = DataInterface(**config)
     test_dataloader = data_module.test_dataloader()
     if not (config['infer_vqvae'] ^ config['infer_baseline']):
         raise ValueError(f"infer_vqvae: {config['infer_vqvae']} and infer_baseline: {config['infer_baseline']}: cannot be True or False at the same time! Set only one variable to True to start a single inferring process")
     if config['infer_vqvae']:
-        model_module = ModelInterfaceVQVAE(**config) 
+        model_module = ModelInterfaceVQVAE(**config)
+        print("Loading VQVAE model…")
     else:
-        model_module = ModelInterfaceBaseline(**config) 
+        model_module = ModelInterfaceBaseline(**config)
+        # print(config['pretrained_baseline_path'])
+        # model_module = ModelInterfaceBaseline.load_from_checkpoint(config['pretrained_baseline_path'])
+        print("Loading Baseline model…")
 
     # Add resume_from_checkpoint to the trainer initialization
     signature = inspect.signature(Trainer.__init__)
