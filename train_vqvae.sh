@@ -1,3 +1,3 @@
 python main.py \
---config_path 'config/config_vqvae_4800.yaml' \
+--config_path 'config/config_vqvae_raw.yaml' \
 --train_vqvae
