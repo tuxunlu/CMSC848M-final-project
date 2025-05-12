@@ -124,13 +124,20 @@ class Baseline(nn.Module):
         tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
         with torch.no_grad():
             if gen_image:
-                image_sentence = torch.full(
-                    (B, total_len + 1),
-                    fill_value=0,  # pad token or dummy
-                    dtype=torch.long,
-                    device=image.device
-                )
-                image_sentence[:, 0] = self.tgt_start_token_id  # set <start> at position 0
+                generated = torch.full((B, 1), self.tgt_start_token_id, dtype=torch.long, device=image.device)
+                
+                for t in range(total_len):
+                    print("t=", t)
+                    tgt_mask = torch.triu(torch.ones(generated.size(1), generated.size(1), device=image.device), diagonal=1).bool()
+                    tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
+
+                    logits = self.transformer(caption, generated, src_mask=src_mask, tgt_mask=tgt_mask)
+                    next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)  # shape: (B, 1)
+                    generated = torch.cat([generated, next_token], dim=1)  # append to sequence
+
+                pred_image_sentence = generated[:, 1:]
+                print("pred_image_sentence.shape=", pred_image_sentence.shape)
+
             else:
                 image_sentence = self.vqvae.encoder_forward(image) # (B, total_len)
                 # Add a start token at the front of each image sentence
@@ -141,14 +148,18 @@ class Baseline(nn.Module):
                     device=image_sentence.device
                 )
                 image_sentence = torch.cat([start_token, image_sentence], dim=1)  # (B, total_len+1)
-        pred_sentence_prob = self.transformer(caption, image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
+                pred_sentence_prob = self.transformer(caption, image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
 
         pred_image = None
         if gen_image:
+            with torch.no_grad():
+                pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
+        else:
             pred_image_sentence = pred_sentence_prob.argmax(dim=-1)
             # truncate the <start> token at front
             pred_image_sentence = pred_image_sentence[:, 1:]  # (B, 1, total_len)
-            with torch.no_grad():
-                pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
+            print("pred_image_sentence.shape=", pred_image_sentence.shape)
+            pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
+
 
         return image_sentence, pred_sentence_prob, pred_image
