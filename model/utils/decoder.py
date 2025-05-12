@@ -30,7 +30,7 @@ class Decoder(nn.Module):
         )
 
     def forward(self, x):
-        return self.inverse_conv_stack(x)[:, :, :self.height, :self.width]
+        return self.inverse_conv_stack(x)[:, :, :self.width, :self.height]
 
 
 if __name__ == "__main__":

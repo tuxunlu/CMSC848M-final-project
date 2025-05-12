@@ -23,8 +23,8 @@ batch_size: 32
 test_batch_size: 32
 num_workers: 8
 persistent_workers: True
-img_dir: data/coco/images
-ann_dir: data/coco/annotations
+img_dir: dataset/coco/images
+ann_dir: dataset/coco/annotations
 
 ################# Model Architecture, Optimizers and Loss Functions #################
 # Basic setting
@@ -32,8 +32,8 @@ model_class_name: baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
-pretrained_vqvae_path: //fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/vqvae/vqvae_4800/version_0/checkpoints/best-epoch=004-train_loss=0.128738.ckpt
-pretrained_transformer_path: /fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/transformer/version_0/checkpoints/best-epoch=000-train_loss=0.000053.ckpt
+pretrained_vqvae_path: /fs/nexus-scratch/haowenyu/CMSC848M-final-project/lightning_logs/vqvae_1200/version_0/checkpoints/last.ckpt
+pretrained_transformer_path: /fs/nexus-scratch/haowenyu/CMSC848M-final-project/lightning_logs/baseline_1200/version_0/checkpoints/last.ckpt
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
@@ -44,7 +44,7 @@ save_img_embedding_map: False
 
 # Transformer model setting
 src_vocab_size: 49408 # 49406 + <start>/<end> token. <start> token id is 49406, <end> token id is 49407
-tgt_vocab_size: 1026 # 1024 + <start>/<end> tokens
+tgt_vocab_size: 1025 # 1024 + <start>/<end> tokens
 d_model: 512
 num_heads: 8
 num_encoder_layers: 2

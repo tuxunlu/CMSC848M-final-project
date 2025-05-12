@@ -1,8 +1,7 @@
 __pycache__/
 data/
-<<<<<<< HEAD
+dataset/
+inference/
 lightning_logs/
 **.pth
-=======
-lightning_logs/
->>>>>>> origin/main
+
