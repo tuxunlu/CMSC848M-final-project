@@ -42,53 +42,6 @@ class Vqvae(nn.Module):
             print('recon data shape:', x_hat.shape)
             assert False
 
-        # Save results
-        img_dir = "/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference/imgs"
-        os.makedirs(img_dir, exist_ok=True)
-        files = glob.glob(os.path.join(img_dir, "*.png"))
-        pattern = re.compile(r".*?_(\d+)\.png$|^(\d+)\.png$")
-
-        indices = []
-        for f in files:
-            name = os.path.basename(f)
-            m = pattern.match(name)
-            if m:
-                # one of the groups will have the number
-                num = m.group(1) or m.group(2)
-                indices.append(int(num))
-
-        if indices:
-            index = max(indices) + 1
-        else:
-            index = 0
-
-        # now you can save, e.g.:
-        # real_image_{index}.png, fake_image_{index}.png, etc.
-        real_path = os.path.join(img_dir, f"real_image_{index}.png")
-        gen_path = os.path.join(img_dir, f"gen_image_{index}.png")
-        image_sentence_path = os.path.join(img_dir, f"image_sentence_{index}.png")
-            
-        batch_id = 1
-
-        real_image = ModelInterfaceBaseline.denormalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        save_image(real_image[batch_id].float().div(255.0), real_path)
-        gen_image = ModelInterfaceBaseline.denormalize(x_hat, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        save_image(gen_image[batch_id].float().div(255.0), gen_path)
-
-        print("gen_image", gen_image)
-        print("real_image", real_image)
-        print("x_hat", x_hat)
-        print("x", x)
-        exit(0)
-
-        idxs = token_seq[batch_id][:].cpu().numpy()
-        grid = idxs.reshape(32, 32)
-        print("grid.shape=", grid.shape)
-        plt.figure(figsize=(10, 10))
-        plt.imshow(grid, cmap='gray', interpolation='nearest')
-        plt.axis('off')
-        plt.savefig(image_sentence_path)
-
         return embedding_loss, x_hat, perplexity, token_seq
 
     def encoder_forward(self, x):
