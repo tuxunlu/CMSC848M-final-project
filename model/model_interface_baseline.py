@@ -72,18 +72,18 @@ class ModelInterfaceBaseline(pl.LightningModule):
         # (B, 3, 480, 640)
         gen_image_uint8  = self.denormalize(gen_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]).transpose(2, 3).contiguous()
         
-        # Save up to N real/generated image pairs
-        batch_size = real_image_uint8.size(0)
-        for i in range(batch_size):
-            if self._saved_count >= self._max_to_save:
-                break
-            idx = self._saved_count
-            real_img = real_image_uint8[i]
-            gen_img = gen_image_uint8[i]
+        # # Save up to N real/generated image pairs
+        # batch_size = real_image_uint8.size(0)
+        # for i in range(batch_size):
+        #     if self._saved_count >= self._max_to_save:
+        #         break
+        #     idx = self._saved_count
+        #     real_img = real_image_uint8[i]
+        #     gen_img = gen_image_uint8[i]
 
-            save_image(real_img.float().div(255.0), os.path.join(self.save_dir, f'real_{idx}.png'))
-            save_image(gen_img.float().div(255.0), os.path.join(self.save_dir, f'gen_{idx}.png'))
-            self._saved_count += 1
+        #     save_image(real_img.float().div(255.0), os.path.join(self.save_dir, f'real_{idx}.png'))
+        #     save_image(gen_img.float().div(255.0), os.path.join(self.save_dir, f'gen_{idx}.png'))
+        #     self._saved_count += 1
  
         # Perplexity
         perplexity = torch.exp(test_loss)
@@ -100,7 +100,6 @@ class ModelInterfaceBaseline(pl.LightningModule):
         fid = self.fid.compute()
 
         # PSNR update
-        print(gen_image_uint8.shape, real_image_uint8.shape)
         psnr = self.psnr(gen_image_uint8, real_image_uint8)
 
 

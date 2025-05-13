@@ -3,7 +3,10 @@ import torch.nn as nn
 
 from .utils.vqvae import VQVAE
 from .utils.transformer import Transformer
-
+import matplotlib.pyplot as plt
+from torchvision.utils import save_image
+import os
+from .model_interface_baseline import ModelInterfaceBaseline
 
 class Baseline(nn.Module):
     def __init__(
@@ -123,23 +126,43 @@ class Baseline(nn.Module):
         tgt_mask = torch.triu(torch.ones(total_len + 1, total_len + 1, device=image.device), diagonal=1).bool()
         tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
         with torch.no_grad():
-            if gen_image:
-                generated = torch.full((B, 1), self.tgt_start_token_id, dtype=torch.long, device=image.device)
-                
+            image_sentence = self.vqvae.encoder_forward(image) # (B, total_len)
+            if not gen_image:
+                # autoregressive codebook generation
+                generated = torch.full((B, 1), self.tgt_start_token_id,
+                                        dtype=torch.long, device=image.device)
+                logits_seq = []
                 for t in range(total_len):
-                    print("t=", t)
-                    tgt_mask = torch.triu(torch.ones(generated.size(1), generated.size(1), device=image.device), diagonal=1).bool()
-                    tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
+                    # rebuild causal mask for this length
+                    tgt_mask = torch.triu(torch.ones(generated.size(1), generated.size(1), device=image.device), 1)
+                    tgt_mask = tgt_mask.bool().masked_fill(tgt_mask.bool(), float('-inf'))
 
-                    logits = self.transformer(caption, generated, src_mask=src_mask, tgt_mask=tgt_mask)
-                    next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)  # shape: (B, 1)
-                    generated = torch.cat([generated, next_token], dim=1)  # append to sequence
+                    logits = self.transformer(caption, generated,
+                                                src_mask=src_mask, tgt_mask=tgt_mask)
+                    # mask out the <start> token id
+                    logits[:, :, self.tgt_start_token_id] = -float('inf')
 
-                pred_image_sentence = generated[:, 1:]
+                    next_token = logits[:, -1, :].argmax(-1, keepdim=True)
+                    generated = torch.cat([generated, next_token], dim=1)
+                    logits_seq.append(logits[:, -1, :])
+
+                # now image_sentence = the codebook IDs we generated (sans start token)
+                pred_image_sentence = generated[:, 1:]             # (B, total_len)
+                pred_sentence_prob = torch.stack(logits_seq, dim=1)
+
                 print("pred_image_sentence.shape=", pred_image_sentence.shape)
+                print((pred_image_sentence == self.tgt_start_token_id).nonzero())
+                print(pred_image_sentence)
+                print(image_sentence)
+                # save image_sentence as json
+                with open('/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/image_sentence.json', 'w') as f:
+                    f.write(str(image_sentence[0].tolist()))
+                # save pred_image_sentence as json
+                with open('/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/pred_image_sentence.json', 'w') as f:
+                    f.write(str(pred_image_sentence[0].tolist()))
 
             else:
-                image_sentence = self.vqvae.encoder_forward(image) # (B, total_len)
+                
                 # Add a start token at the front of each image sentence
                 start_token = torch.full(
                     (image_sentence.size(0), 1),  # (B, 1)
@@ -151,7 +174,7 @@ class Baseline(nn.Module):
                 pred_sentence_prob = self.transformer(caption, image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
 
         pred_image = None
-        if gen_image:
+        if not gen_image:
             with torch.no_grad():
                 pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
         else:
@@ -161,5 +184,21 @@ class Baseline(nn.Module):
             print("pred_image_sentence.shape=", pred_image_sentence.shape)
             pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
 
+        # Save results
+        batch_id = 0
+
+        real_image = ModelInterfaceBaseline.denormalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        save_image(real_image[batch_id].float().div(255.0), os.path.join("/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference", f'real_image.png'))
+        gen_image = ModelInterfaceBaseline.denormalize(pred_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        save_image(gen_image[batch_id].float().div(255.0), os.path.join("/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference", f'gen_image.png'))
+
+        idxs = image_sentence[batch_id][1:].cpu().numpy()
+        grid = idxs.reshape(120 // self.downsample_height, 160 // self.downsample_width)
+        print("grid.shape=", grid.shape)
+        plt.figure(figsize=(10, 10))
+        plt.imshow(grid, cmap='gray', interpolation='nearest')
+        plt.axis('off')
+        plt.savefig('/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference/image_sentence.png')
+        
 
         return image_sentence, pred_sentence_prob, pred_image
