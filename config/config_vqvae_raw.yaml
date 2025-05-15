@@ -11,7 +11,7 @@ lr_decay_rate: 0.5
 lr_decay_min_lr: 1e-6
 
 ################# Distributed Training Control #################
-devices: 4
+devices: 1
 num_nodes: 1
 strategy: ddp
 
@@ -23,8 +23,8 @@ batch_size: 40
 test_batch_size: 2
 num_workers: 8
 persistent_workers: True
-img_dir: data/coco/images
-ann_dir: data/coco/annotations
+img_dir: dataset/coco/images
+ann_dir: dataset/coco/annotations
 
 ################# Model Architecture, Optimizers and Loss Functions #################
 # Basic setting

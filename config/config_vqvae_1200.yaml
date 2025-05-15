@@ -19,12 +19,12 @@ strategy: ddp
 dataset_class_name: coco
 dataset_dir: dataset
 split_ratios: [0.8, 0.1, 0.1]
-batch_size: 64
+batch_size: 128
 test_batch_size: 64
 num_workers: 8
 persistent_workers: True
-img_dir: data/coco/images
-ann_dir: data/coco/annotations
+img_dir: dataset/coco/images
+ann_dir: dataset/coco/annotations
 
 ################# Model Architecture, Optimizers and Loss Functions #################
 # Basic setting
@@ -35,10 +35,10 @@ weight_decay: 1e-6
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
-n_embeddings: 1024
+n_embeddings: 512
 embedding_dim: 128
-downsample_height: 4
-downsample_width: 4
+downsample_height: 1
+downsample_width: 1
 beta: 0.25
 save_img_embedding_map: False
 

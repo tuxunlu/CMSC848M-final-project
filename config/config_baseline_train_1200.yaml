@@ -32,12 +32,12 @@ model_class_name: baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
-pretrained_vqvae_path: lightning_logs/vqvae_1200/version_0/checkpoints/last.ckpt
+pretrained_vqvae_path: lightning_logs/vqvae_1200_new/version_0/checkpoints/last.ckpt
 pretrained_transformer_path: None
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
-n_embeddings: 1024
+n_embeddings: 512
 embedding_dim: 128
 downsample_height: 4
 downsample_width: 4
