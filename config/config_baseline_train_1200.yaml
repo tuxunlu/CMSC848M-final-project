@@ -46,7 +46,7 @@ save_img_embedding_map: False
 
 # Transformer model setting
 src_vocab_size: 49408 # 49406 + <start>/<end> token. <start> token id is 49406, <end> token id is 49407
-tgt_vocab_size: 512
+tgt_vocab_size: 513
 d_model: 512
 num_heads: 8
 num_encoder_layers: 2

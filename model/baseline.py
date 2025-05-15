@@ -176,7 +176,10 @@ class Baseline(nn.Module):
             with torch.no_grad():
                 pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
         else:
-            pred_image_sentence = pred_sentence_prob.argmax(dim=-1)
+            # Set <start> token prob to negative inf. Avoid overriding the predicted probability by cloning.
+            pred_sentence_generation_logits = pred_sentence_prob.clone()
+            pred_sentence_generation_logits[:, :, self.tgt_start_token_id] = -float('inf')
+            pred_image_sentence = pred_sentence_generation_logits.argmax(dim=-1)
             pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
 
         if gen_image:
