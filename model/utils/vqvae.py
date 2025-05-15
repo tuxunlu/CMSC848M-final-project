@@ -71,6 +71,7 @@ class VQVAE(nn.Module):
         fmap_width = int(160 / downsample_width)
         z_q = z_q.view(B, fmap_height, fmap_width, embedding_dim).permute(0, 3, 1, 2).contiguous()
 
+        print(f"before calling self.decoder, z_q: {z_q.shape}")
         x_hat = self.decoder(z_q)
 
         return x_hat  # (B, 3, H, W)

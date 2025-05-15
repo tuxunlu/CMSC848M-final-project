@@ -53,7 +53,7 @@ class ModelInterfaceBaseline(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook, _ = self(image, caption, mask, gen_image=True)
+        image_codebook, translated_image_codebook, _ = self(image, caption, mask, gen_image=False)
         val_loss = self.loss_function(translated_image_codebook, image_codebook, 'val')
         self.log('val_loss', val_loss, on_step=True, on_epoch=False, prog_bar=True)
         return val_loss

@@ -123,7 +123,7 @@ class Baseline(nn.Module):
         total_len = int((120 / self.downsample_height) * (160 / self.downsample_width))
         src_mask = src_mask.bool()
         # Create causal mask to prevent attending to future tokens
-        tgt_mask = torch.triu(torch.ones(total_len, total_len, device=image.device), diagonal=1).float()
+        tgt_mask = torch.triu(torch.ones(total_len, total_len, device=image.device), diagonal=1).bool()
         tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
         image_sentence = self.vqvae.encoder_forward(image) # (B, total_len)
         if gen_image:
