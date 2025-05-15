@@ -72,7 +72,7 @@ class DecoderLayer(nn.Module):
         self_attn_out, _ = self.self_attn(tgt, tgt, tgt, attn_mask=tgt_mask)
         tgt = self.norm1(tgt + self.dropout(self_attn_out))
         # Cross-attention with encoder memory
-        cross_attn_out, _ = self.cross_attn(tgt, memory, memory, attn_mask=memory_mask)
+        cross_attn_out, _ = self.cross_attn(tgt, memory, memory, key_padding_mask=~memory_mask if memory_mask is not None else None)
         tgt = self.norm2(tgt + self.dropout(cross_attn_out))
         # Feed forward
         ff_out = self.ff(tgt)

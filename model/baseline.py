@@ -123,7 +123,7 @@ class Baseline(nn.Module):
         total_len = int((120 / self.downsample_height) * (160 / self.downsample_width))
         src_mask = src_mask.bool()
         # Create causal mask to prevent attending to future tokens
-        tgt_mask = torch.triu(torch.ones(total_len + 1, total_len + 1, device=image.device), diagonal=1).bool()
+        tgt_mask = torch.triu(torch.ones(total_len, total_len, device=image.device), diagonal=1).float()
         tgt_mask = tgt_mask.masked_fill(tgt_mask, float('-inf'))
         image_sentence = self.vqvae.encoder_forward(image) # (B, total_len)
         if gen_image:
@@ -168,8 +168,8 @@ class Baseline(nn.Module):
                 dtype=torch.long,
                 device=image_sentence.device
             )
-            image_sentence = torch.cat([start_token, image_sentence], dim=1)  # (B, total_len+1)
-            pred_sentence_prob = self.transformer(caption, image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
+            decoder_input_image_sentence = torch.cat([start_token, image_sentence[:, :-1]], dim=1)  # (B, total_len)
+            pred_sentence_prob = self.transformer(caption, decoder_input_image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
 
         pred_image = None
         if gen_image:
@@ -177,9 +177,6 @@ class Baseline(nn.Module):
                 pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
         else:
             pred_image_sentence = pred_sentence_prob.argmax(dim=-1)
-            # truncate the <start> token at front
-            pred_image_sentence = pred_image_sentence[:, 1:]  # (B, 1, total_len)
-            print("pred_image_sentence.shape=", pred_image_sentence.shape)
             pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
 
         if gen_image:
@@ -191,7 +188,7 @@ class Baseline(nn.Module):
             gen_image = ModelInterfaceBaseline.denormalize(pred_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             save_image(gen_image[batch_id].float().div(255.0), os.path.join("/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference", f'gen_image.png'))
 
-            idxs = image_sentence[batch_id][1:].cpu().numpy()
+            idxs = image_sentence[batch_id].cpu().numpy()
             grid = idxs.reshape(120 // self.downsample_height, 160 // self.downsample_width)
             print("grid.shape=", grid.shape)
             plt.figure(figsize=(10, 10))
