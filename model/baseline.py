@@ -7,6 +7,19 @@ import matplotlib.pyplot as plt
 from torchvision.utils import save_image
 import os
 from .model_interface_baseline import ModelInterfaceBaseline
+import json
+
+def get_save_index(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    files = os.listdir(path)
+    if len(files) == 0:
+        return 0
+    else:
+        files.sort()
+        last_file = files[-1]
+        last_index = int(last_file.split('_')[-1].split('.')[0])
+        return last_index + 1
 
 class Baseline(nn.Module):
     def __init__(
@@ -35,11 +48,14 @@ class Baseline(nn.Module):
             pretrained_transformer_path=None,
             downsample_height=4,
             downsample_width=4,
+            log_dir=None,
         ):
         super(Baseline, self).__init__()
         if 'pretrained_vqvae_path' == None:
             raise KeyError("Key pretrained_vqvae_path is None!")
         
+        self.log_dir = log_dir
+
         self.downsample_height = downsample_height
         self.downsample_width = downsample_width
         self.tgt_start_token_id = tgt_start_token_id
@@ -151,15 +167,13 @@ class Baseline(nn.Module):
                 pred_sentence_prob = torch.stack(logits_seq, dim=1)
 
                 print("pred_image_sentence.shape=", pred_image_sentence.shape)
-                print((pred_image_sentence == self.tgt_start_token_id).nonzero())
-                print(pred_image_sentence)
-                print(image_sentence)
-                # save image_sentence as json
-                with open('/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/image_sentence.json', 'w') as f:
-                    f.write(str(image_sentence[0].tolist()))
-                # save pred_image_sentence as json
-                with open('/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/pred_image_sentence.json', 'w') as f:
-                    f.write(str(pred_image_sentence[0].tolist()))
+                print("Number of <start> token in pred_image_sentence=", (pred_image_sentence == self.tgt_start_token_id).nonzero())
+                print("pred_image_sentence=", pred_image_sentence)
+                print("image_sentence=", image_sentence)
+                with open('pred_image_sentence.json', 'w') as f:
+                    json.dump(pred_image_sentence.cpu().numpy().tolist(), f)
+                with open('image_sentence.json', 'w') as f:
+                    json.dump(image_sentence.cpu().numpy().tolist(), f)
         else:
             # Add a start token at the front of each image sentence
             start_token = torch.full(
@@ -186,10 +200,12 @@ class Baseline(nn.Module):
             # Save results
             batch_id = 0
 
+            i = get_save_index(os.path.join(self.log_dir, "img"))
+            
             real_image = ModelInterfaceBaseline.denormalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            save_image(real_image[batch_id].float().div(255.0), os.path.join("/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference", f'real_image.png'))
+            save_image(real_image[batch_id].float().div(255.0), os.path.join(self.log_dir, "img", f'real_image_{i}.png'))
             gen_image = ModelInterfaceBaseline.denormalize(pred_image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            save_image(gen_image[batch_id].float().div(255.0), os.path.join("/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference", f'gen_image.png'))
+            save_image(gen_image[batch_id].float().div(255.0), os.path.join(self.log_dir, "img", f'gen_image_{i}.png'))
 
             idxs = image_sentence[batch_id].cpu().numpy()
             grid = idxs.reshape(120 // self.downsample_height, 160 // self.downsample_width)
@@ -197,7 +213,15 @@ class Baseline(nn.Module):
             plt.figure(figsize=(10, 10))
             plt.imshow(grid, cmap='gray', interpolation='nearest')
             plt.axis('off')
-            plt.savefig('/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference/image_sentence.png')
+            plt.savefig(os.path.join(self.log_dir, "img", f'image_sentence_{i}.png'))
+
+            idxs = pred_image_sentence[batch_id].cpu().numpy()
+            grid = idxs.reshape(120 // self.downsample_height, 160 // self.downsample_width)
+            print("grid.shape=", grid.shape)
+            plt.figure(figsize=(10, 10))
+            plt.imshow(grid, cmap='gray', interpolation='nearest')
+            plt.axis('off')
+            plt.savefig(os.path.join(self.log_dir, "img", f'pred_image_sentence_{i}.png'))
         
 
         return image_sentence, pred_sentence_prob, pred_image

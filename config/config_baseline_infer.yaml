@@ -20,7 +20,7 @@ dataset_class_name: coco
 dataset_dir: data
 split_ratios: [0.8, 0.1, 0.1]
 batch_size: 32
-test_batch_size: 32
+test_batch_size: 4
 num_workers: 8
 persistent_workers: True
 img_dir: data/coco/images
@@ -37,14 +37,16 @@ pretrained_transformer_path: /fs/nexus-scratch/tuxunlu/git/CMSC848M-final-projec
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4
-n_embeddings: 1024
+n_embeddings: 512
 embedding_dim: 128
+downsample_height: 4
+downsample_width: 4
 beta: 0.25
 save_img_embedding_map: False
 
 # Transformer model setting
 src_vocab_size: 49408 # 49406 + <start>/<end> token. <start> token id is 49406, <end> token id is 49407
-tgt_vocab_size: 1025 # 1024 + <start>/<end> tokens
+tgt_vocab_size: 513 # 1024 + <start>/<end> tokens
 d_model: 512
 num_heads: 8
 num_encoder_layers: 2
@@ -53,6 +55,7 @@ dim_ff: 512
 dropout: 0.1
 input_max_len: 256
 output_max_len: 1200
+tgt_start_token_id: 512
 
 ################# Tensorboard Logger Setting #################
 log_dir: 'lightning_logs'
