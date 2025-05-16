@@ -35,11 +35,11 @@ class ModelInterfaceBaseline(pl.LightningModule):
 
         self.tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
-        # Directory to save examples
-        self.save_dir = os.path.join(self.hparams.log_dir, 'imgs')
-        os.makedirs(self.save_dir, exist_ok=True)
-        self._saved_count = 0  # count of saved image pairs
-        self._max_to_save = 10  # total pairs to save
+        # # Directory to save examples
+        # self.save_dir = os.path.join(self.hparams.log_dir, 'imgs')
+        # os.makedirs(self.save_dir, exist_ok=True)
+        # self._saved_count = 0  # count of saved image pairs
+        # self._max_to_save = 10  # total pairs to save
 
     def forward(self, image, caption, mask, gen_image):
         return self.model(image, caption, mask, gen_image=gen_image)

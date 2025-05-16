@@ -170,9 +170,12 @@ class Baseline(nn.Module):
                 print("Number of <start> token in pred_image_sentence=", (pred_image_sentence == self.tgt_start_token_id).nonzero())
                 print("pred_image_sentence=", pred_image_sentence)
                 print("image_sentence=", image_sentence)
-                with open('pred_image_sentence.json', 'w') as f:
+
+                i = get_save_index(os.path.join(self.log_dir, "sentence"))
+
+                with open(os.path.join(self.log_dir, 'sentence', f'pred_image_sentence_{i}.json'), 'w') as f:
                     json.dump(pred_image_sentence.cpu().numpy().tolist(), f)
-                with open('image_sentence.json', 'w') as f:
+                with open(os.path.join(self.log_dir, 'sentence', f'image_sentence_{i}.json'), 'w') as f:
                     json.dump(image_sentence.cpu().numpy().tolist(), f)
         else:
             # Add a start token at the front of each image sentence
