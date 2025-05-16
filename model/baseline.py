@@ -172,7 +172,7 @@ class Baseline(nn.Module):
             pred_sentence_prob = self.transformer(caption, decoder_input_image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
 
         pred_image = None
-        if gen_image:
+        if not gen_image:
             with torch.no_grad():
                 pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
         else:

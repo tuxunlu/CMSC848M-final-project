@@ -102,7 +102,6 @@ class ModelInterfaceBaseline(pl.LightningModule):
         # PSNR update
         psnr = self.psnr(gen_image_uint8, real_image_uint8)
 
-
         # CLIP score update: compares image and caption strings
         captions_str = self.tokenizer.batch_decode(
             caption,
