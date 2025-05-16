@@ -32,8 +32,8 @@ model_class_name: baseline
 weight_decay: 1e-6
 
 # VQVAE model setting
-pretrained_vqvae_path: /fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/vqvae_1200_new/version_0/checkpoints/last.ckpt
-pretrained_transformer_path: /fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/baseline_1200_new/version_0/checkpoints/last.ckpt
+pretrained_vqvae_path: /fs/nexus-scratch/haowenyu/CMSC848M-final-project/lightning_logs/vqvae_1200_new/version_0/checkpoints/last.ckpt
+pretrained_transformer_path: /fs/nexus-scratch/haowenyu/CMSC848M-final-project/lightning_logs/baseline_1200_new/version_0/checkpoints/last.ckpt
 h_dim: 128
 res_h_dim: 128
 n_res_layers: 4

@@ -44,7 +44,7 @@ class Vqvae(nn.Module):
 
         if save_result:
             # Save results
-            img_dir = "/fs/nexus-scratch/tuxunlu/git/CMSC848M-final-project/inference/imgs"
+            img_dir = "/inference/imgs"
             os.makedirs(img_dir, exist_ok=True)
             files = glob.glob(os.path.join(img_dir, "*.png"))
             pattern = re.compile(r".*?_(\d+)\.png$|^(\d+)\.png$")
