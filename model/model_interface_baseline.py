@@ -6,7 +6,8 @@ import torch.optim.lr_scheduler as lrs
 from torchvision.utils import save_image
 import pytorch_lightning as pl
 from typing import Callable, Dict, Tuple
-from .loss.translation_loss import translation_loss
+from .loss.translation_loss import translation_loss, evaluate_token_diversity
+from .loss.vqvae import reconstruction_loss
 from torchmetrics.text.bleu import BLEUScore
 from torchmetrics.image.fid import FrechetInceptionDistance
 from torchmetrics.image.psnr import PeakSignalNoiseRatio
@@ -46,22 +47,34 @@ class ModelInterfaceBaseline(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook, _ = self(image, caption, mask, gen_image=False)
-        train_loss = self.loss_function(translated_image_codebook, image_codebook, 'train')
+        image_codebook, translated_image_codebook, pred_image = self(image, caption, mask, gen_image=False)
+        train_loss = self.loss_function(translated_image_codebook, image_codebook, None, None, 'train')
         self.log('train_loss', train_loss, on_step=True, on_epoch=False, prog_bar=True)
+
+        token_stats = evaluate_token_diversity(translated_image_codebook)
+        self.log('train_unique_token_ratio', token_stats['unique_token_ratio'], on_step=False, on_epoch=True, prog_bar=False)
+        self.log('train_token_entropy', token_stats['token_entropy'], on_step=False, on_epoch=True, prog_bar=False)
+        self.log('train_top_10_token_coverage', token_stats['top_10_token_coverage'], on_step=False, on_epoch=True, prog_bar=False)
+
         return train_loss
 
     def validation_step(self, batch, batch_idx):
         image, caption, mask = batch
-        image_codebook, translated_image_codebook, _ = self(image, caption, mask, gen_image=False)
-        val_loss = self.loss_function(translated_image_codebook, image_codebook, 'val')
+        image_codebook, translated_image_codebook, pred_image = self(image, caption, mask, gen_image=False)
+        val_loss = self.loss_function(translated_image_codebook, image_codebook, pred_image, image, 'val')
         self.log('val_loss', val_loss, on_step=True, on_epoch=False, prog_bar=True)
+
+        token_stats = evaluate_token_diversity(translated_image_codebook)
+        self.log('val_unique_token_ratio', token_stats['unique_token_ratio'], on_step=False, on_epoch=True, prog_bar=False)
+        self.log('val_token_entropy', token_stats['token_entropy'], on_step=False, on_epoch=True, prog_bar=False)
+        self.log('val_top_10_token_coverage', token_stats['top_10_token_coverage'], on_step=False, on_epoch=True, prog_bar=False)
+
         return val_loss
 
     def test_step(self, batch, batch_idx):
         image, caption, mask = batch
         image_codebook, pred_image_codebook_logits, gen_image = self(image, caption, mask, gen_image=True)
-        test_loss = self.loss_function(pred_image_codebook_logits, image_codebook, 'test')
+        test_loss = self.loss_function(pred_image_codebook_logits, image_codebook, gen_image, image, 'test')
 
         # Post-processing
         translated_image_codebook = pred_image_codebook_logits.argmax(dim=-1)
@@ -194,9 +207,18 @@ class ModelInterfaceBaseline(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def __configure_loss(self):
-        def loss_func(inputs, labels, stage):
+        def loss_func(inputs, labels, pred_image, gt_image, stage):
             loss = translation_loss(inputs, labels, pad_token_id=99999)
-            self.log(f'{stage}_translation_loss', loss.item(), on_step=False, on_epoch=True, prog_bar=False)
+            self.log(f'{stage}_translation_loss', loss.item(), on_step=True, on_epoch=True, prog_bar=True)
+
+            # Only for logging purpose
+            if pred_image is not None and gt_image is not None:
+                recon_loss = reconstruction_loss(pred_image, gt_image)
+                recon_loss = recon_loss.item()
+            else:
+                recon_loss = 0.0
+            self.log(f'{stage}_reconstruction_loss', recon_loss, on_step=True, on_epoch=True, prog_bar=True)
+
             return loss
         return loss_func
 

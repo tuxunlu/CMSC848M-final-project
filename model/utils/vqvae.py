@@ -67,8 +67,8 @@ class VQVAE(nn.Module):
         z_q = torch.matmul(one_hot, self.vector_quantization.embedding.weight)  # (B, L, emb_dim)
 
         # Reshape to image-shaped feature map: (B, emb_dim, 30, 40) if downsample_height = 4, downsample_width = 4
-        fmap_height = int(120 / downsample_height)
-        fmap_width = int(160 / downsample_width)
+        fmap_height = int(160 / downsample_height)
+        fmap_width = int(120 / downsample_width)
         z_q = z_q.view(B, fmap_height, fmap_width, embedding_dim).permute(0, 3, 1, 2).contiguous()
 
         x_hat = self.decoder(z_q)

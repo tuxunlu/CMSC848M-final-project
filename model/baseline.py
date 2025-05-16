@@ -115,6 +115,8 @@ class Baseline(nn.Module):
             new_state_dict[new_k] = v
 
         model.load_state_dict(new_state_dict)
+        for param in model.parameters():
+            param.requires_grad = False
         return model
     
     def load_pretrained_transformer(self, pretrained_path, **kwargs):
@@ -168,8 +170,6 @@ class Baseline(nn.Module):
 
                 print("pred_image_sentence.shape=", pred_image_sentence.shape)
                 print("Number of <start> token in pred_image_sentence=", (pred_image_sentence == self.tgt_start_token_id).nonzero())
-                print("pred_image_sentence=", pred_image_sentence)
-                print("image_sentence=", image_sentence)
 
                 i = get_save_index(os.path.join(self.log_dir, "sentence"))
 
@@ -189,7 +189,7 @@ class Baseline(nn.Module):
             pred_sentence_prob = self.transformer(caption, decoder_input_image_sentence, src_mask=src_mask, tgt_mask=tgt_mask)
 
         pred_image = None
-        if not gen_image:
+        if gen_image:
             with torch.no_grad():
                 pred_image = self.vqvae.decoder_forward(pred_image_sentence, self.downsample_height, self.downsample_width)
         else:
@@ -212,7 +212,6 @@ class Baseline(nn.Module):
 
             idxs = image_sentence[batch_id].cpu().numpy()
             grid = idxs.reshape(120 // self.downsample_height, 160 // self.downsample_width)
-            print("grid.shape=", grid.shape)
             plt.figure(figsize=(10, 10))
             plt.imshow(grid, cmap='gray', interpolation='nearest')
             plt.axis('off')
@@ -220,7 +219,6 @@ class Baseline(nn.Module):
 
             idxs = pred_image_sentence[batch_id].cpu().numpy()
             grid = idxs.reshape(120 // self.downsample_height, 160 // self.downsample_width)
-            print("grid.shape=", grid.shape)
             plt.figure(figsize=(10, 10))
             plt.imshow(grid, cmap='gray', interpolation='nearest')
             plt.axis('off')

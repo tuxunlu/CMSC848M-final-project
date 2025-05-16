@@ -19,12 +19,12 @@ strategy: ddp_find_unused_parameters_true
 dataset_class_name: coco
 dataset_dir: dataset
 split_ratios: [0.8, 0.1, 0.1]
-batch_size: 40
+batch_size: 32
 test_batch_size: 32
 num_workers: 8
 persistent_workers: True
-img_dir: dataset/coco/images
-ann_dir: dataset/coco/annotations
+img_dir: data/coco/images
+ann_dir: data/coco/annotations
 
 ################# Model Architecture, Optimizers and Loss Functions #################
 # Basic setting
